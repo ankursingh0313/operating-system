@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAppSelector, useAppDispatch } from '@/lib/hooks'
 import { openApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
@@ -12,25 +12,31 @@ interface AppItem {
   icon: string 
 }
 
-// App Registry: Removed '/public' from the paths because Next.js serves files from public/ at the root URL
 const APP_REGISTRY: Record<string, AppItem> = {
-  browser: { id: 'email', name: 'Email', icon: '/icons/email/emailIcon.png' },
-  explorer: { id: 'github', name: 'GitHub', icon: '/icons/socials/githubIcon.png' },
-  settings: { id: 'linkedin', name: 'LinkedIn', icon: '/icons/socials/linkedinIcon.png' },
-  code: { id: 'profile', name: 'Profile', icon: '/icons/profile/Awatar.png' },
-  notes: { id: 'apps', name: 'Apps', icon: '/icons/apps/appsIcon.png' },
+  browser: { id: 'email', name: 'Email', icon: '/icons/email/emailIcon-1.png' },
+  explorer: { id: 'github', name: 'GitHub', icon: '/icons/socials/gitIcon-1.png' },
+  settings: { id: 'linkedin', name: 'LinkedIn', icon: '/icons/socials/LinkrdinIcon.png' },
+  code: { id: 'profile', name: 'Profile', icon: '/icons/profile/Profile.png' },
+  notes: { id: 'apps', name: 'Apps', icon: '/icons/apps/apps-2.png' },
 }
 
 export default function Dock() {
   const dispatch = useAppDispatch()
-  const { accent } = useAppSelector((state) => state.theme)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const { accent, hydrated } = useAppSelector((state) => state.theme)
   const { dockApps, openApps, focusedApp } = useAppSelector((state) => state.dock)
-  const theme = COLOR_PACKAGES[accent]
+  
+  // Use 'blue' during SSR and initial hydration pass to guarantee server/client match
+  const activeAccent = (isMounted && hydrated) ? accent : 'blue'
+  const theme = COLOR_PACKAGES[activeAccent]
 
   const handleAppClick = (appId: string) => {
-    if (focusedApp === appId) {
-      return
-    }
+    if (focusedApp === appId) return
     dispatch(openApp(appId))
   }
 
@@ -39,7 +45,7 @@ export default function Dock() {
       <style>{`
         .os-dock {
           position: fixed;
-          bottom: 1.25rem;
+          bottom: 2.25rem;
           left: 50%;
           transform: translateX(-50%);
           z-index: 9999;
@@ -52,7 +58,7 @@ export default function Dock() {
           -webkit-backdrop-filter: blur(2.3px) saturate(2.4);
           border: 1px solid rgba(255, 255, 255, 0.12);
           box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 
-                      0 0 20px 2px rgba(${theme.rgb}, 0.15);
+                      0 0 20px 2px var(--dock-glow);
           border-radius: 1.25rem;
           width: max-content;
           transition: box-shadow 0.3s ease;
@@ -79,8 +85,8 @@ export default function Dock() {
         }
 
         .dock-icon-wrapper.focused {
-          background: rgba(${theme.rgb}, 0.2);
-          border-color: rgb(var(--theme-rgb));
+          background: var(--dock-focus-bg);
+          border-color: var(--dock-border);
         }
 
         .app-indicator {
@@ -96,12 +102,20 @@ export default function Dock() {
         .app-indicator.active {
           width: 16px;
           border-radius: 4px;
-          background-color: ${theme.rgb};
-          box-shadow: 0 0 8px ${theme.rgb};
+          background-color: var(--dock-indicator);
+          box-shadow: 0 0 8px var(--dock-indicator);
         }
       `}</style>
 
-      <div className="os-dock">
+      <div 
+        className="os-dock"
+        style={{
+          ['--dock-glow' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.15)`,
+          ['--dock-focus-bg' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.2)`,
+          ['--dock-border' as string]: theme.rgb,
+          ['--dock-indicator' as string]: theme.rgb,
+        }}
+      >
         {dockApps.map((appId: string) => {
           const app = APP_REGISTRY[appId]
           if (!app) return null
@@ -122,6 +136,7 @@ export default function Dock() {
                 alt={app.name} 
                 width={64} 
                 height={64} 
+                style={{ width: 'auto', height: 'auto' }}
                 priority 
               />
               {isOpen && (

@@ -1,7 +1,9 @@
+// lib/store.ts
 import { configureStore } from '@reduxjs/toolkit';
 import themeReducer from './features/themeSlice';
 import contextMenuReducer from './features/contextMenuSlice';
-import dockReducer from './features/dockSlice'
+import dockReducer from './features/dockSlice';
+import widgetsReducer from './features/widgetsSlice';
 
 export const makeStore = () => {
   return configureStore({
@@ -9,7 +11,10 @@ export const makeStore = () => {
       theme: themeReducer,
       contextMenu: contextMenuReducer,
       dock: dockReducer,
+      widgets: widgetsReducer,
     },
+    // Completely disable devtools and middleware checks during SSR to stop Math.random() triggers
+    devTools: process.env.NODE_ENV !== 'production' && typeof window !== 'undefined',
   });
 };
 

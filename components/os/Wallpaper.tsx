@@ -1,5 +1,8 @@
+// components/os/Wallpaper.tsx
+'Youshouldnotseethis' // ignore or keep 'use client'
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAppSelector } from '@/lib/hooks'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
 
@@ -8,7 +11,19 @@ const STARS_MEDIUM = '1925px 1320px #fff, 693px 1778px #fff, 1016px 711px #fff, 
 const STARS_LARGE = '200px 981px #fff, 1731px 521px #fff, 132px 1039px #fff, 1888px 1547px #fff, 899px 1226px #fff, 1887px 580px #fff, 1548px 1092px #fff, 1626px 689px #fff, 254px 1072px #fff, 1684px 1211px #fff, 672px 1267px #fff, 939px 668px #fff, 1969px 645px #fff, 1126px 983px #fff, 457px 568px #fff, 476px 876px #fff, 829px 1896px #fff, 1364px 1846px #fff, 1507px 1120px #fff, 936px 1948px #fff'
 
 export default function Wallpaper() {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const { accent, wallpaper } = useAppSelector((state) => state.theme)
+
+  // Prevent rendering custom dynamic styles on the server until the client mounts completely
+  if (!isMounted) {
+    return <div className="absolute inset-0 z-0 bg-[#030308] pointer-events-none" />
+  }
+
   const theme = COLOR_PACKAGES[accent]
 
   // 1. Glowing Gradient Orbs Wallpaper
@@ -244,6 +259,7 @@ export default function Wallpaper() {
       </>
     )
   }
+
   // 7. Pattern Squares Wallpaper
   if (wallpaper === 'squares') {
     return (
@@ -315,7 +331,8 @@ export default function Wallpaper() {
       </>
     )
   }
-  // 8. Modern Geometric Mesh Wallpaper (Theme-Aware)
+
+  // 8. Modern Geometric Mesh Wallpaper
   if (wallpaper === 'mesh') {
     return (
       <>
@@ -399,7 +416,8 @@ export default function Wallpaper() {
       </>
     )
   }
-  // 10. Gradient Ripple Pattern Wallpaper (Theme-Aware)
+
+  // 9. Gradient Ripple Pattern Wallpaper
   if (wallpaper === 'ripple') {
     return (
       <>
@@ -441,7 +459,8 @@ export default function Wallpaper() {
       </>
     )
   }
-  // 11. Geometric Mosaic Wallpaper (Theme-Aware)
+
+  // 10. Geometric Mosaic Wallpaper
   if (wallpaper === 'mosaic') {
     return (
       <>
@@ -475,5 +494,6 @@ export default function Wallpaper() {
       </>
     )
   }
+
   return null
 }

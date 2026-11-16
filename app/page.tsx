@@ -5,6 +5,10 @@ import { useAppDispatch } from '@/lib/hooks'
 import { setWallpaper, setAccent, toggleMode, setMode } from '@/lib/features/themeSlice'
 import Wallpaper from '@/components/os/Wallpaper'
 import Dock from '@/components/os/Dock'
+import DraggableWidget from '@/components/os/DraggableWidget'
+import ClockWidget from '@/components/os/widgets/ClockWidget'
+import MusicWidget from '@/components/os/widgets/MusicWidget'
+import GitWidget from '@/components/os/widgets/GitWidget'
 
 export default function Home() {
   const dispatch = useAppDispatch()
@@ -138,6 +142,19 @@ export default function Home() {
     >
       {/* Active Theme-Aware Wallpaper */}
       <Wallpaper />
+
+      {/* Draggable Desktop Widgets Layer */}
+      <DraggableWidget id="clock">
+        <ClockWidget />
+      </DraggableWidget>
+
+      <DraggableWidget id="music">
+        <MusicWidget />
+      </DraggableWidget>
+
+      <DraggableWidget id="git">
+        <GitWidget />
+      </DraggableWidget>
 
       {/* Bottom Center Floating Dock */}
       <Dock />
