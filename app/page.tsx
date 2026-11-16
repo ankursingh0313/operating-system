@@ -2,7 +2,7 @@
 
 import { useContextMenu } from '@/lib/hooks/useContextMenu'
 import { useAppDispatch } from '@/lib/hooks'
-import { setWallpaper, setAccent, toggleMode } from '@/lib/features/themeSlice'
+import { setWallpaper, setAccent, toggleMode, setMode } from '@/lib/features/themeSlice'
 import Wallpaper from '@/components/os/Wallpaper'
 
 export default function Home() {
@@ -36,6 +36,16 @@ export default function Home() {
       onClick: () => dispatch(setWallpaper('stars')),
     },
     {
+      id: 'wp-terrain',
+      label: 'Wallpaper: Earth Terrain',
+      onClick: () => dispatch(setWallpaper('terrain')),
+    },
+    {
+      id: 'wp-geometric',
+      label: 'Wallpaper: Geometric Hexagons',
+      onClick: () => dispatch(setWallpaper('geometric')),
+    },
+    {
       id: 'theme-red',
       label: 'Set Accent: Red',
       dividerAbove: true,
@@ -50,6 +60,52 @@ export default function Home() {
       id: 'theme-blue',
       label: 'Set Accent: Blue',
       onClick: () => dispatch(setAccent('blue')),
+    },
+    {
+      id: 'theme-purple',
+      label: 'Set Accent: Purple',
+      onClick: () => dispatch(setAccent('purple')),
+    },
+    {
+      id: 'theme-pink',
+      label: 'Set Accent: Pink',
+      onClick: () => dispatch(setAccent('pink')),
+    },
+    {
+      id: 'theme-orange',
+      label: 'Set Accent: Orange',
+      onClick: () => dispatch(setAccent('orange')),
+    },
+    {
+      id: 'theme-cyan',
+      label: 'Set Accent: Cyan',
+      onClick: () => dispatch(setAccent('cyan')),
+    },
+    {
+      id: 'theme-indigo',
+      label: 'Set Accent: Indigo',
+      onClick: () => dispatch(setAccent('indigo')),
+    },
+    {
+      id: 'theme-slate',
+      label: 'Set Accent: Slate',
+      onClick: () => dispatch(setAccent('slate')),
+    },
+    {
+      id: 'theme-rose',
+      label: 'Set Accent: Rose',
+      onClick: () => dispatch(setAccent('rose')),
+    },
+    {
+      id: 'theme-light',
+      label: 'Set Mode: Light',
+      dividerAbove: true,
+      onClick: () => dispatch(setMode('light')),
+    },
+    {
+      id: 'theme-dark',
+      label: 'Set Mode: Dark',
+      onClick: () => dispatch(setMode('dark')), 
     },
     {
       id: 'toggle-mode',

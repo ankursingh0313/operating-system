@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AccentColor } from '../themes/colorPackages';
 
-export type WallpaperType = 'matrix' | 'gradient' | 'grid' | 'radar'| 'stars';
+export type WallpaperType = 'matrix' | 'gradient' | 'grid' | 'radar'| 'stars' | 'terrain' | 'geometric';
 
 interface ThemeState {
   accent: AccentColor;
