@@ -4,6 +4,7 @@ import { useContextMenu } from '@/lib/hooks/useContextMenu'
 import { useAppDispatch } from '@/lib/hooks'
 import { setWallpaper, setAccent, toggleMode, setMode } from '@/lib/features/themeSlice'
 import Wallpaper from '@/components/os/Wallpaper'
+import Dock from '@/components/os/Dock'
 
 export default function Home() {
   const dispatch = useAppDispatch()
@@ -137,6 +138,9 @@ export default function Home() {
     >
       {/* Active Theme-Aware Wallpaper */}
       <Wallpaper />
+
+      {/* Bottom Center Floating Dock */}
+      <Dock />
     </main>
   )
 }
