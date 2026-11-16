@@ -11,9 +11,9 @@ export default function Home() {
   // Context menu to test live theme & wallpaper switching
   const desktopMenu = useContextMenu([
     {
-      id: 'wp-matrix',
-      label: 'Wallpaper: Matrix Math',
-      onClick: () => dispatch(setWallpaper('matrix')),
+      id: 'wp-squares',
+      label: 'Wallpaper: Pattern Squares',
+      onClick: () => dispatch(setWallpaper('squares')),
     },
     {
       id: 'wp-gradient',
@@ -44,6 +44,21 @@ export default function Home() {
       id: 'wp-geometric',
       label: 'Wallpaper: Geometric Hexagons',
       onClick: () => dispatch(setWallpaper('geometric')),
+    },
+    {
+      id: 'wp-mesh',
+      label: 'Wallpaper: Geometric Mesh',
+      onClick: () => dispatch(setWallpaper('mesh')),
+    },
+    {
+      id: 'wp-ripple',
+      label: 'Wallpaper: Gradient Ripple',
+      onClick: () => dispatch(setWallpaper('ripple')),
+    },
+    {
+      id: 'wp-mosaic',
+      label: 'Wallpaper: Mosaic Tiles',
+      onClick: () => dispatch(setWallpaper('mosaic')),
     },
     {
       id: 'theme-red',

@@ -3,17 +3,6 @@
 import { useAppSelector } from '@/lib/hooks'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
 
-const MATRIX_SYMBOLS = [
-  '+', '−', '×', '÷', '=', '≠', '≈', '∞', '√', '∑',
-  '∏', '∫', '∂', '∆', 'π', 'θ', 'λ', 'μ', 'σ', 'ω',
-  'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'ι', 'κ', 'ν',
-  'ξ', 'ρ', 'τ', 'φ', 'χ', 'ψ', '∈', '∉', '∩', '∪',
-  '⊂', '⊃', '⊆', '⊇', '∧', '∨', '¬', '⇒', '⇔', '∀',
-  '∃', 'ℕ', 'ℤ', 'ℚ', 'ℝ', 'ℂ', '|', '∥', '∠', '⊥',
-  '≅', '∝', '∴', '∵', '⊕', '⊗', '⊢', '⊨', '∇'
-]
-const MATRIX_ITEMS = Array.from({ length: 520 }, (_, i) => MATRIX_SYMBOLS[i % MATRIX_SYMBOLS.length])
-
 const STARS_SMALL = '501px 811px #fff, 1450px 1324px #fff, 1093px 1780px #fff, 1469px 678px #fff, 904px 741px #fff, 1160px 781px #fff, 1841px 1962px #fff, 1630px 1667px #fff, 1788px 676px #fff, 367px 1734px #fff, 1343px 156px #fff, 1283px 1142px #fff, 1062px 378px #fff, 1395px 467px #fff, 1017px 1891px #fff, 137px 1114px #fff, 1767px 1403px #fff, 1543px 11px #fff, 1078px 181px #fff, 1189px 1574px #fff, 1697px 1551px #fff, 439px 472px #fff, 1491px 677px #fff, 1364px 599px #fff, 34px 382px #fff, 1221px 1584px #fff, 1266px 1499px #fff, 169px 1907px #fff, 1219px 1125px #fff, 659px 18px #fff, 1731px 1959px #fff, 332px 1216px #fff, 1913px 788px #fff, 80px 712px #fff, 326px 1605px #fff, 574px 1502px #fff, 473px 1653px #fff, 404px 975px #fff, 322px 1797px #fff, 425px 1321px #fff, 1121px 1797px #fff, 731px 647px #fff, 891px 1584px #fff, 1523px 109px #fff, 1379px 244px #fff, 865px 1064px #fff, 493px 956px #fff, 624px 1380px #fff, 440px 619px #fff, 1630px 767px #fff, 955px 1196px #fff, 62px 729px #fff, 126px 946px #fff, 1256px 896px #fff, 1444px 256px #fff, 661px 1628px #fff, 1078px 1716px #fff, 300px 737px #fff, 1734px 413px #fff, 1296px 129px #fff, 1771px 1678px #fff, 977px 1764px #fff, 1879px 549px #fff, 665px 1531px #fff, 89px 701px #fff, 1084px 1183px #fff, 1597px 1576px #fff, 1354px 1774px #fff, 554px 1471px #fff, 1469px 287px #fff'
 const STARS_MEDIUM = '1925px 1320px #fff, 693px 1778px #fff, 1016px 711px #fff, 1171px 563px #fff, 661px 1919px #fff, 1610px 44px #fff, 1275px 140px #fff, 1208px 1802px #fff, 1473px 1587px #fff, 11px 1117px #fff, 853px 1757px #fff, 1149px 937px #fff, 1353px 428px #fff, 270px 279px #fff, 258px 1404px #fff, 417px 1188px #fff, 286px 561px #fff, 393px 1765px #fff, 147px 881px #fff, 666px 1097px #fff, 1425px 1278px #fff, 806px 156px #fff, 1252px 561px #fff, 218px 52px #fff, 1371px 1980px #fff, 171px 745px #fff, 1424px 89px #fff, 137px 244px #fff, 939px 1922px #fff, 137px 1080px #fff, 1757px 50px #fff, 904px 536px #fff, 1938px 1001px #fff, 1172px 440px #fff, 72px 1475px #fff'
 const STARS_LARGE = '200px 981px #fff, 1731px 521px #fff, 132px 1039px #fff, 1888px 1547px #fff, 899px 1226px #fff, 1887px 580px #fff, 1548px 1092px #fff, 1626px 689px #fff, 254px 1072px #fff, 1684px 1211px #fff, 672px 1267px #fff, 939px 668px #fff, 1969px 645px #fff, 1126px 983px #fff, 457px 568px #fff, 476px 876px #fff, 829px 1896px #fff, 1364px 1846px #fff, 1507px 1120px #fff, 936px 1948px #fff'
@@ -22,61 +11,7 @@ export default function Wallpaper() {
   const { accent, wallpaper } = useAppSelector((state) => state.theme)
   const theme = COLOR_PACKAGES[accent]
 
-  // 1. Matrix Mathematical Symbols Wallpaper
-  if (wallpaper === 'matrix') {
-    return (
-      <>
-        <style>{`
-          .jp-matrix {
-            background-color: #05050a;
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
-            grid-auto-rows: 46px;
-            font-size: 28px;
-            color: var(--wp-primary);
-            font-family: "Courier New", Courier, monospace;
-            contain: strict;
-          }
-          .jp-matrix > span {
-            text-align: center;
-            user-select: none;
-            line-height: 46px;
-          }
-          .jp-matrix > span:nth-child(19n + 2) { animation: smooth-pulse 3.5s ease-in-out infinite 0.2s; will-change: color, opacity; }
-          .jp-matrix > span:nth-child(29n + 1) { animation: smooth-pulse 4.1s ease-in-out infinite 0.7s; will-change: color, opacity; }
-          .jp-matrix > span:nth-child(11n)     { animation: smooth-pulse 2.9s ease-in-out infinite 1.1s; will-change: color, opacity; }
-          .jp-matrix > span:nth-child(37n + 10){ animation: smooth-pulse 5.3s ease-in-out infinite 1.5s; will-change: color, opacity; }
-          .jp-matrix > span:nth-child(41n + 1) { animation: smooth-pulse 3.9s ease-in-out infinite 0.4s; will-change: color, opacity; }
-
-          @keyframes smooth-pulse {
-            0%, 100% { color: var(--wp-primary); opacity: 0.65; }
-            50% { color: var(--wp-secondary); opacity: 1; text-shadow: 0 0 10px var(--wp-glow); }
-          }
-        `}</style>
-        <div
-          className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
-          style={{
-            '--wp-primary': theme.rawPrimary,
-            '--wp-secondary': theme.rawSecondary,
-            '--wp-glow': theme.rawGlow,
-          } as React.CSSProperties}
-        >
-          <div className="jp-matrix">
-            {MATRIX_ITEMS.map((symbol, index) => (
-              <span key={index}>{symbol}</span>
-            ))}
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  // 2. Glowing Gradient Orbs Wallpaper
+  // 1. Glowing Gradient Orbs Wallpaper
   if (wallpaper === 'gradient') {
     return (
       <div className="absolute inset-0 z-0 bg-gray-950 overflow-hidden pointer-events-none flex items-center justify-center">
@@ -87,7 +22,7 @@ export default function Wallpaper() {
     )
   }
 
-  // 3. Cybernetic Perspective Grid Wallpaper
+  // 2. Cybernetic Perspective Grid Wallpaper
   if (wallpaper === 'grid') {
     return (
       <div 
@@ -105,7 +40,7 @@ export default function Wallpaper() {
     )
   }
 
-  // 4. Radar Scanner Wallpaper
+  // 3. Radar Scanner Wallpaper
   if (wallpaper === 'radar') {
     return (
       <>
@@ -176,7 +111,7 @@ export default function Wallpaper() {
     )
   }
 
-  // 5. Animated Starry Night Wallpaper
+  // 4. Animated Starry Night Wallpaper
   if (wallpaper === 'stars') {
     return (
       <>
@@ -218,7 +153,7 @@ export default function Wallpaper() {
     )
   }
 
-  // 6. Custom Geometric Pattern Wallpaper
+  // 5. Custom Geometric Pattern Wallpaper
   if (wallpaper === 'geometric') {
     return (
       <>
@@ -244,7 +179,8 @@ export default function Wallpaper() {
       </>
     )
   }
-  // 7. Cracked Earth Wallpaper
+
+  // 6. Cracked Earth Wallpaper
   if (wallpaper === 'terrain') {
     return (
       <>
@@ -308,6 +244,236 @@ export default function Wallpaper() {
       </>
     )
   }
+  // 7. Pattern Squares Wallpaper
+  if (wallpaper === 'squares') {
+    return (
+      <>
+        <style>{`
+          .pattern-square {
+            --mx: 0;
+            --my: 0;
+            --a-x: calc(var(--mx) * 8px);
+            --a-y: calc(var(--my) * 8px);
+            --b-x: calc(var(--mx) * -6px);
+            --b-y: calc(var(--my) * -6px);
+            --c-x: calc(var(--mx) * 4px);
+            --c-y: calc(var(--my) * 4px);
 
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background:
+              repeating-linear-gradient(
+                  45deg,
+                  #0000 calc(-650% / 13) calc(50% / 13),
+                  #100f0f 0 calc(100% / 13),
+                  #0000 0 calc(150% / 13),
+                  #100f0f 0 calc(200% / 13),
+                  #0000 0 calc(250% / 13),
+                  #100f0f 0 calc(300% / 13)
+                )
+                calc(0px + var(--c-x)) calc(0px + var(--c-y)),
+              repeating-linear-gradient(
+                  45deg,
+                  #0000 calc(-650% / 13) calc(50% / 13),
+                  #100f0f 0 calc(100% / 13),
+                  #0000 0 calc(150% / 13),
+                  #100f0f 0 calc(200% / 13),
+                  #0000 0 calc(250% / 13),
+                  #100f0f 0 calc(300% / 13)
+                )
+                calc(32px + var(--a-x)) calc(32px + var(--a-y)),
+              repeating-linear-gradient(
+                  -45deg,
+                  #0000 calc(-650% / 13) calc(50% / 13),
+                  #100f0f 0 calc(100% / 13),
+                  #0000 0 calc(150% / 13),
+                  #100f0f 0 calc(200% / 13),
+                  #0000 0 calc(250% / 13),
+                  #100f0f 0 calc(300% / 13)
+                )
+                calc(0px + var(--b-x)) calc(0px + var(--b-y)),
+              repeating-linear-gradient(
+                  -45deg,
+                  ${theme.rawPrimary} calc(-650% / 13) calc(50% / 13),
+                  #100f0f 0 calc(100% / 13),
+                  ${theme.rawPrimary} 0 calc(150% / 13),
+                  #100f0f 0 calc(200% / 13),
+                  ${theme.rawPrimary} 0 calc(250% / 13),
+                  #100f0f 0 calc(300% / 13)
+                )
+                calc(32px + var(--a-x)) calc(32px + var(--a-y)) #1e1e1e;
+
+            background-size: 64px 64px;
+            z-index: 0;
+            pointer-events: none;
+            contain: strict;
+          }
+        `}</style>
+        <div className="pattern-square" />
+      </>
+    )
+  }
+  // 8. Modern Geometric Mesh Wallpaper (Theme-Aware)
+  if (wallpaper === 'mesh') {
+    return (
+      <>
+        <style>{`
+          .theme-mesh-wallpaper {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            background-image:
+              linear-gradient(
+                45deg,
+                ${theme.rawPrimary} 25%,
+                transparent 25%,
+                transparent 75%,
+                ${theme.rawPrimary} 75%
+              ),
+              linear-gradient(
+                -45deg,
+                ${theme.rawPrimary} 25%,
+                transparent 25%,
+                transparent 75%,
+                ${theme.rawPrimary} 75%
+              ),
+              linear-gradient(
+                45deg,
+                transparent 40%,
+                ${theme.rawPrimary} 40%,
+                ${theme.rawPrimary} 60%,
+                transparent 60%
+              ),
+              linear-gradient(
+                -45deg,
+                transparent 40%,
+                ${theme.rawPrimary} 40%,
+                ${theme.rawPrimary} 60%,
+                transparent 60%
+              ),
+              radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            background-size:
+              60px 60px,
+              60px 60px,
+              120px 120px,
+              120px 120px,
+              100% 100%;
+            background-position:
+              0 0,
+              30px 30px,
+              0 0,
+              60px 60px,
+              0 0;
+            z-index: 0;
+            pointer-events: none;
+            contain: strict;
+          }
+
+          .theme-mesh-wallpaper::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.03) 0px,
+                rgba(255, 255, 255, 0.03) 1px,
+                transparent 1px,
+                transparent 10px
+              ),
+              repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.03) 0px,
+                rgba(255, 255, 255, 0.03) 1px,
+                transparent 1px,
+                transparent 10px
+              );
+            background-size: 20px 20px;
+            filter: blur(0.5px);
+          }
+        `}</style>
+        <div className="theme-mesh-wallpaper" />
+      </>
+    )
+  }
+  // 10. Gradient Ripple Pattern Wallpaper (Theme-Aware)
+  if (wallpaper === 'ripple') {
+    return (
+      <>
+        <style>{`
+          .theme-ripple-wallpaper {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            --s: 100px;
+            --c1: ${theme.rgb};
+            --c2: #1b1b3a;
+
+            --_g: var(--c2) 6% 14%, var(--c1) 16% 24%, var(--c2) 26% 34%,
+              var(--c1) 36% 44%, var(--c2) 46% 54%, var(--c1) 56% 64%, var(--c2) 66% 74%,
+              var(--c1) 76% 84%, var(--c2) 86% 94%;
+            background: radial-gradient(
+                100% 100% at 100% 0,
+                var(--c1) 4%,
+                var(--_g),
+                #0008 96%,
+                #0000
+              ),
+              radial-gradient(
+                  100% 100% at 0 100%,
+                  #0000,
+                  #0008 4%,
+                  var(--_g),
+                  var(--c1) 96%
+                )
+                var(--c1);
+            background-size: var(--s) var(--s);
+            z-index: 0;
+            pointer-events: none;
+            contain: strict;
+          }
+        `}</style>
+        <div className="theme-ripple-wallpaper" />
+      </>
+    )
+  }
+  // 11. Geometric Mosaic Wallpaper (Theme-Aware)
+  if (wallpaper === 'mosaic') {
+    return (
+      <>
+        <style>{`
+          .theme-mosaic-wallpaper {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            --s: 60px;
+            --c1: #180a22;
+            --c2: ${theme.rgb};
+            --_g: radial-gradient(
+              25% 25% at 25% 25%,
+              var(--c1) 99%,
+              rgba(0, 0, 0, 0) 101%
+            );
+            background: var(--_g) var(--s) var(--s) / calc(2 * var(--s))
+                calc(2 * var(--s)),
+              var(--_g) 0 0 / calc(2 * var(--s)) calc(2 * var(--s)),
+              radial-gradient(50% 50%, var(--c2) 98%, rgba(0, 0, 0, 0)) 0 0 / var(--s)
+                var(--s),
+              repeating-conic-gradient(var(--c2) 0 50%, var(--c1) 0 100%)
+                calc(0.5 * var(--s)) 0 / calc(2 * var(--s)) var(--s);
+            z-index: 0;
+            pointer-events: none;
+            contain: strict;
+          }
+        `}</style>
+        <div className="theme-mosaic-wallpaper" />
+      </>
+    )
+  }
   return null
 }

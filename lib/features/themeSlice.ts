@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AccentColor } from '../themes/colorPackages';
 
-export type WallpaperType = 'matrix' | 'gradient' | 'grid' | 'radar'| 'stars' | 'terrain' | 'geometric';
+export type WallpaperType = 'squares' | 'gradient' | 'grid' | 'radar'| 'stars' | 'terrain' | 'geometric' | 'mesh' | 'ripple' | 'mosaic';
 
 interface ThemeState {
   accent: AccentColor;
@@ -12,7 +12,7 @@ interface ThemeState {
 const initialState: ThemeState = {
   accent: 'blue',
   mode: 'dark',
-  wallpaper: 'matrix', // Default wallpaper
+  wallpaper: 'squares', // Default wallpaper
 };
 
 export const themeSlice = createSlice({

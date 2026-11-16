@@ -23,6 +23,7 @@ export interface ColorPackage {
   rawPrimary: string;
   rawSecondary: string;
   rawGlow: string;
+  rgb: string; // 👈 Actual RGB representation (e.g. "rgb(239, 68, 68)")
 }
 
 export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
@@ -37,6 +38,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(0, 150, 255, 0.4)',
     rawSecondary: 'rgba(100, 200, 255, 1)',
     rawGlow: 'rgba(0, 150, 255, 0.8)',
+    rgb: 'rgb(0, 150, 255)',
   },
   red: {
     name: 'Red',
@@ -49,6 +51,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(239, 68, 68, 0.4)',
     rawSecondary: 'rgba(252, 165, 165, 1)',
     rawGlow: 'rgba(239, 68, 68, 0.8)',
+    rgb: 'rgb(239, 68, 68)',
   },
   green: {
     name: 'Green',
@@ -61,6 +64,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(16, 185, 129, 0.4)',
     rawSecondary: 'rgba(110, 231, 183, 1)',
     rawGlow: 'rgba(16, 185, 129, 0.8)',
+    rgb: 'rgb(16, 185, 129)',
   },
   purple: {
     name: 'Purple',
@@ -73,6 +77,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(147, 51, 235, 0.4)',
     rawSecondary: 'rgba(216, 180, 254, 1)',
     rawGlow: 'rgba(147, 51, 235, 0.8)',
+    rgb: 'rgb(147, 51, 235)',
   },
   pink: {
     name: 'Pink',
@@ -85,6 +90,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(236, 72, 153, 0.4)',
     rawSecondary: 'rgba(244, 114, 182, 1)',
     rawGlow: 'rgba(236, 72, 153, 0.8)',
+    rgb: 'rgb(236, 72, 153)',
   },
   orange: {
     name: 'Orange',
@@ -97,6 +103,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(249, 115, 22, 0.4)',
     rawSecondary: 'rgba(253, 186, 116, 1)',
     rawGlow: 'rgba(249, 115, 22, 0.8)',
+    rgb: 'rgb(249, 115, 22)',
   },
   cyan: {
     name: 'Cyan',
@@ -109,6 +116,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(6, 182, 212, 0.4)',
     rawSecondary: 'rgba(103, 232, 249, 1)',
     rawGlow: 'rgba(6, 182, 212, 0.8)',
+    rgb: 'rgb(6, 182, 212)',
   },
   indigo: {
     name: 'Indigo',
@@ -121,6 +129,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(99, 102, 241, 0.4)',
     rawSecondary: 'rgba(165, 180, 252, 1)',
     rawGlow: 'rgba(99, 102, 241, 0.8)',
+    rgb: 'rgb(99, 102, 241)',
   },
   slate: {
     name: 'Slate (Monochrome)',
@@ -133,6 +142,7 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(100, 116, 139, 0.4)',
     rawSecondary: 'rgba(203, 213, 225, 1)',
     rawGlow: 'rgba(100, 116, 139, 0.8)',
+    rgb: 'rgb(100, 116, 139)',
   },
   rose: {
     name: 'Rose',
@@ -145,5 +155,6 @@ export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {
     rawPrimary: 'rgba(244, 63, 94, 0.4)',
     rawSecondary: 'rgba(253, 164, 175, 1)',
     rawGlow: 'rgba(244, 63, 94, 0.8)',
+    rgb: 'rgb(244, 63, 94)',
   },
 };
