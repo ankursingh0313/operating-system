@@ -1,7 +1,7 @@
 'use client'
 
 import { useContextMenu } from '@/lib/hooks/useContextMenu'
-import { useAppDispatch } from '@/lib/hooks'
+import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { setWallpaper, setAccent, toggleMode, setMode } from '@/lib/features/themeSlice'
 import Wallpaper from '@/components/os/Wallpaper'
 import Dock from '@/components/os/Dock'
@@ -9,9 +9,15 @@ import DraggableWidget from '@/components/os/DraggableWidget'
 import ClockWidget from '@/components/os/widgets/ClockWidget'
 import MusicWidget from '@/components/os/widgets/MusicWidget'
 import GitWidget from '@/components/os/widgets/GitWidget'
+import Window from '@/components/os/Window'
+import IframeApp from '@/components/os/apps/IframeApp'
+import AppContent from '@/components/os/apps/AppContent'
+import GitHubClientApp from '@/components/os/apps/GitHubClientApp'
+import GitHubProfileApp from '@/components/os/apps/GitHubProfileApp'
 
 export default function Home() {
   const dispatch = useAppDispatch()
+  const { openApps } = useAppSelector((state) => state.dock)
 
   // Context menu to test live theme & wallpaper switching
   const desktopMenu = useContextMenu([
@@ -155,6 +161,58 @@ export default function Home() {
       <DraggableWidget id="git">
         <GitWidget />
       </DraggableWidget>
+
+
+
+{/* 🖥️ Dynamic Windows Layer */}
+      {openApps.map((appId) => {
+        switch (appId) {
+          case 'github':
+            return (
+              <Window key="github" id="github" title="GitHub Explorer" defaultWidth={750} defaultHeight={500}>
+                <GitHubProfileApp />
+              </Window>
+            )
+          case 'email':
+            return (
+              <Window key="email" id="email" title="Email Client" defaultWidth={600} defaultHeight={400}>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-bold text-base">Inbox</h3>
+                  <p className="opacity-70 text-xs">No new messages. Backend telemetry is nominal.</p>
+                </div>
+              </Window>
+            )
+          case 'linkedin':
+            return (
+              <Window key="linkedin" id="linkedin" title="LinkedIn Profile" defaultWidth={650} defaultHeight={450}>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-bold text-base">Professional Network</h3>
+                  <p className="opacity-70 text-xs">Full Stack Software Developer.</p>
+                </div>
+              </Window>
+            )
+          case 'profile':
+            return (
+              <Window key="profile" id="profile" title="User Profile" defaultWidth={600} defaultHeight={400}>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-bold text-base">Ankur Singh</h3>
+                  <p className="opacity-70 text-xs">Leafnx Technologies Founder & Full-Stack Developer.</p>
+                </div>
+              </Window>
+            )
+          case 'apps':
+            return (
+              <Window key="apps" id="apps" title="Applications" defaultWidth={600} defaultHeight={400}>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-bold text-base">System Utilities</h3>
+                  <p className="opacity-70 text-xs">All OS packages running smoothly.</p>
+                </div>
+              </Window>
+            )
+          default:
+            return null
+        }
+      })}
 
       {/* Bottom Center Floating Dock */}
       <Dock />
