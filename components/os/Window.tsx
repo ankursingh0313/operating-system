@@ -182,7 +182,7 @@ export default function Window({
       </div>
 
       {/* Window Body */}
-      <div className="flex-1 overflow-auto p-5 text-gray-100 text-sm">
+      <div className="flex-1 overflow-auto p-0 text-gray-100 text-sm">
         {children}
       </div>
 
