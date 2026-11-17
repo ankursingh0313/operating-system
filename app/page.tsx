@@ -14,6 +14,8 @@ import IframeApp from '@/components/os/apps/IframeApp'
 import AppContent from '@/components/os/apps/AppContent'
 import GitHubClientApp from '@/components/os/apps/GitHubClientApp'
 import GitHubProfileApp from '@/components/os/apps/GitHubProfileApp'
+import AppearanceApp from '@/components/os/apps/AppearanceApp'
+import { openApp } from '@/lib/features/dockSlice'
 
 export default function Home() {
   const dispatch = useAppDispatch()
@@ -139,6 +141,11 @@ export default function Home() {
       dividerAbove: true,
       onClick: () => dispatch(toggleMode()),
     },
+    {
+      id: 'apearance',
+      label: 'Apearance',
+      onClick: () => dispatch(openApp('appearance'))
+    }
   ])
 
   return (
@@ -182,13 +189,10 @@ export default function Home() {
                 </div>
               </Window>
             )
-          case 'linkedin':
+          case 'available':
             return (
-              <Window key="linkedin" id="linkedin" title="LinkedIn Profile" defaultWidth={650} defaultHeight={450}>
-                <div className="flex flex-col gap-2">
-                  <h3 className="font-bold text-base">Professional Network</h3>
-                  <p className="opacity-70 text-xs">Full Stack Software Developer.</p>
-                </div>
+              <Window key="available" id="available" title="Available" defaultWidth={650} defaultHeight={450}>
+                <IframeApp src='https://available-six.vercel.app/' title='Available' />
               </Window>
             )
           case 'profile':
@@ -207,6 +211,12 @@ export default function Home() {
                   <h3 className="font-bold text-base">System Utilities</h3>
                   <p className="opacity-70 text-xs">All OS packages running smoothly.</p>
                 </div>
+              </Window>
+            )
+          case 'appearance':
+            return (
+              <Window key="appearance" id="appearance" title="System Settings — Appearance" defaultWidth={600} defaultHeight={450}>
+                <AppearanceApp />
               </Window>
             )
           default:

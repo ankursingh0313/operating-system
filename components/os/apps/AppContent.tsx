@@ -3,6 +3,7 @@
 import React from 'react'
 import GitHubClientApp from './GitHubClientApp';
 import GitHubProfileApp from './GitHubProfileApp';
+import IframeApp from './IframeApp';
 
 interface AppContentProps {
   appId: string
@@ -19,12 +20,9 @@ export default function AppContent({ appId }: AppContentProps) {
       )
     case 'github':
       return <GitHubProfileApp />;
-    case 'linkedin':
+    case 'available':
       return (
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-base">Professional Network</h3>
-          <p className="opacity-70 text-xs">Full Stack Software Developer specializing in MERN stack, Web3 systems, and high-throughput backend architecture.</p>
-        </div>
+        <IframeApp src='https://available-six.vercel.app/' title='Available' />
       )
     case 'profile':
       return (

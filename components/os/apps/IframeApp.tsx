@@ -15,7 +15,7 @@ export default function IframeApp({ src, title = 'Web App' }: IframeAppProps) {
   const theme = COLOR_PACKAGES[hydrated ? accent : 'blue']
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-gray-950/60 overflow-hidden rounded-xl">
+    <div className="relative w-full h-full flex flex-col bg-gray-950/60 overflow-hidden ">
       {/* Loading Spinner / Skeleton while iframe loads */}
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-10 gap-3">

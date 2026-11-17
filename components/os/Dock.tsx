@@ -13,9 +13,9 @@ interface AppItem {
 }
 
 const APP_REGISTRY: Record<string, AppItem> = {
-  browser: { id: 'email', name: 'Email', icon: '/icons/email/emailIcon-1.png' },
+  browser: { id: 'email', name: 'Email', icon: '/icons/email/emailIcon-2.png' },
   explorer: { id: 'github', name: 'GitHub', icon: '/icons/socials/gitIcon-1.png' },
-  settings: { id: 'linkedin', name: 'LinkedIn', icon: '/icons/socials/LinkrdinIcon.png' },
+  settings: { id: 'available', name: 'Available', icon: '/icons/available/Available.png' },
   code: { id: 'profile', name: 'Profile', icon: '/icons/profile/Profile.png' },
   notes: { id: 'apps', name: 'Apps', icon: '/icons/apps/apps-2.png' },
 }

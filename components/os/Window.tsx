@@ -145,7 +145,7 @@ export default function Window({
         left: '0px',
         top: '0px',
         width: isMaximized ? '100vw' : `${size.width}px`,
-        height: isMaximized ? 'calc(100vh - 5rem)' : `${size.height}px`,
+        height: isMaximized ? '100vh' : `${size.height}px`,
         zIndex: isFocused ? 999 : zIndex,
         '--window-ring': theme.rgb,
       } as React.CSSProperties}
