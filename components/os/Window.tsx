@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { closeApp, focusApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { useContextMenu } from '@/lib/hooks/useContextMenu'
 
 interface WindowProps {
   id: string
@@ -24,6 +25,7 @@ export default function Window({
   const dispatch = useAppDispatch()
   const { accent, hydrated } = useAppSelector((state) => state.theme)
   const { openApps, minimizedApps, focusedApp, windowOrder } = useAppSelector((state) => state.dock)
+
 
   const activeAccent = hydrated ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
@@ -47,6 +49,21 @@ export default function Window({
   const unmaximizedPos = useRef({ x: initialX, y: initialY })
   const unmaximizedSize = useRef({ width: defaultWidth, height: defaultHeight })
 
+  useEffect(() => {
+    const node = windowRef.current
+    if (!node) return
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    node.addEventListener('contextmenu', handleContextMenu, { capture: true })
+
+    return () => {
+      node.removeEventListener('contextmenu', handleContextMenu, { capture: true })
+    }
+  }, [])
   // Apply initial position transform on mount
   useEffect(() => {
     if (windowRef.current) {
@@ -139,6 +156,7 @@ export default function Window({
   return (
     <div
       ref={windowRef}
+      onContextMenu={(e) => e.preventDefault()}
       onClick={() => dispatch(focusApp(id))}
       style={{
         position: 'absolute',

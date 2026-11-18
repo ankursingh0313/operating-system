@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { moveWidget, focusWidget } from '@/lib/features/widgetsSlice'
+import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
 
 interface DraggableWidgetProps {
   id: string
@@ -12,6 +13,8 @@ interface DraggableWidgetProps {
 export default function DraggableWidget({ id, children }: DraggableWidgetProps) {
   const dispatch = useAppDispatch()
   const [isMounted, setIsMounted] = useState(false)
+    const { accent } = useAppSelector((state) => state.theme)
+        const theme = COLOR_PACKAGES[accent]
 
   useEffect(() => {
     setIsMounted(true)
@@ -61,7 +64,25 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
         cursor: 'grab',
       }}
       className="select-none active:cursor-grabbing"
-    >
+    > 
+    <style>{`
+        .widget-card {
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(16px) saturate(140%);
+          -webkit-backdrop-filter: blur(16px) saturate(140%);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 1.5rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
+                      0 0 15px rgba(${theme.rgb}, 0.1);
+          color: #ffffff;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .widget-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4),
+                      0 0 20px rgba(${theme.rgb}, 0.2);
+        }
+      `}</style>
       {children}
     </div>
   )

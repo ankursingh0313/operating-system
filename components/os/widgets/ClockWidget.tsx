@@ -22,24 +22,6 @@ export default function ClockWidget() {
 
   return (
     <div className="widget-card flex flex-col justify-between p-5 min-w-[220px] h-[130px]">
-      <style>{`
-        .widget-card {
-          background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(16px) saturate(140%);
-          -webkit-backdrop-filter: blur(16px) saturate(140%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 1.5rem;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
-                      0 0 15px rgba(${theme.rgb}, 0.1);
-          color: #ffffff;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .widget-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4),
-                      0 0 20px rgba(${theme.rgb}, 0.2);
-        }
-      `}</style>
       <div className="flex justify-between items-center text-xs tracking-wider uppercase opacity-60 font-medium">
         <span>{dateStr}</span>
         <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.rgb }} />
