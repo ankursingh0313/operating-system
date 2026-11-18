@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { closeApp, focusApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
-import { useContextMenu } from '@/lib/hooks/useContextMenu'
 
 interface WindowProps {
   id: string
@@ -25,7 +24,6 @@ export default function Window({
   const dispatch = useAppDispatch()
   const { accent, hydrated } = useAppSelector((state) => state.theme)
   const { openApps, minimizedApps, focusedApp, windowOrder } = useAppSelector((state) => state.dock)
-
 
   const activeAccent = hydrated ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
@@ -64,9 +62,10 @@ export default function Window({
       node.removeEventListener('contextmenu', handleContextMenu, { capture: true })
     }
   }, [])
-  // Apply initial position transform on mount
+
+  // Apply initial position transform on mount (desktop only)
   useEffect(() => {
-    if (windowRef.current) {
+    if (windowRef.current && window.innerWidth >= 640) {
       windowRef.current.style.transform = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0px)`
     }
   }, [])
@@ -76,7 +75,7 @@ export default function Window({
   // 1. Smooth Dragging Handler
   const handleMouseDownHeader = (e: React.MouseEvent) => {
     dispatch(focusApp(id))
-    if (isMaximized) return
+    if (isMaximized || window.innerWidth < 640) return // Disable dragging on mobile view
 
     const startX = e.clientX - posRef.current.x
     const startY = e.clientY - posRef.current.y
@@ -110,7 +109,7 @@ export default function Window({
   const handleMouseDownResize = (e: React.MouseEvent) => {
     e.stopPropagation()
     dispatch(focusApp(id))
-    if (isMaximized) return
+    if (isMaximized || window.innerWidth < 640) return
 
     const startWidth = size.width
     const startHeight = size.height
@@ -140,14 +139,14 @@ export default function Window({
       unmaximizedPos.current = { ...posRef.current }
       unmaximizedSize.current = { ...size }
       setIsMaximized(true)
-      if (windowRef.current) {
+      if (windowRef.current && window.innerWidth >= 640) {
         windowRef.current.style.transform = 'translate3d(0px, 0px, 0px)'
       }
     } else {
       setIsMaximized(false)
       posRef.current = { ...unmaximizedPos.current }
       setSize({ ...unmaximizedSize.current })
-      if (windowRef.current) {
+      if (windowRef.current && window.innerWidth >= 640) {
         windowRef.current.style.transform = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0px)`
       }
     }
@@ -158,18 +157,20 @@ export default function Window({
       ref={windowRef}
       onContextMenu={(e) => e.preventDefault()}
       onClick={() => dispatch(focusApp(id))}
+      className={`flex flex-col overflow-hidden shadow-2xl border border-white/20 bg-gray-900/90 backdrop-blur-2xl transition-[width,height] duration-150 
+        ${
+          isMaximized 
+            ? 'fixed inset-0 w-screen h-screen rounded-none top-0 left-0 translate-x-0 bottom-0 z-[9999]' 
+            : 'fixed top-12 left-1/2 -translate-x-1/2 w-[90vw] h-[75vh] sm:absolute sm:top-0 sm:left-0 sm:translate-x-0 sm:w-[var(--desktop-w)] sm:h-[var(--desktop-h)] rounded-2xl'
+        }
+        ${isFocused ? 'ring-1 ring-[var(--window-ring)]' : 'opacity-95'}
+      `}
       style={{
-        position: 'absolute',
-        left: '0px',
-        top: '0px',
-        width: isMaximized ? '100vw' : `${size.width}px`,
-        height: isMaximized ? '100vh' : `${size.height}px`,
         zIndex: isFocused ? 999 : zIndex,
         '--window-ring': theme.rgb,
-      } as React.CSSProperties}
-      className={`flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-gray-900/90 backdrop-blur-2xl transition-[width,height] duration-150 ${
-        isFocused ? 'ring-1 ring-[var(--window-ring)]' : 'opacity-95'
-      }`}
+        '--desktop-w': `${size.width}px`,
+        '--desktop-h': `${size.height}px`,
+      } as React.CSSProperties & Record<string, string | number>}
     >
       {/* Window Header */}
       <div
@@ -180,7 +181,7 @@ export default function Window({
           <span className="text-xs font-semibold tracking-wide text-gray-200">{title}</span>
         </div>
 
-        {/* 2 Window Controls (Maximize & Close) */}
+        {/* Window Controls (Maximize & Close) */}
         <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={toggleMaximize}
@@ -208,7 +209,7 @@ export default function Window({
       {!isMaximized && (
         <div
           onMouseDown={handleMouseDownResize}
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-end justify-end p-1 opacity-40 hover:opacity-100"
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-end justify-end p-1 opacity-40 hover:opacity-100 hidden sm:flex"
           title="Resize"
         >
           <div className="w-2 h-2 border-r-2 border-b-2 border-white/50" />

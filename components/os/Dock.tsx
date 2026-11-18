@@ -31,7 +31,6 @@ export default function Dock() {
   const { accent, hydrated } = useAppSelector((state) => state.theme)
   const { dockApps, openApps, focusedApp } = useAppSelector((state) => state.dock)
   
-  // Use 'blue' during SSR and initial hydration pass to guarantee server/client match
   const activeAccent = (isMounted && hydrated) ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
 
@@ -45,23 +44,45 @@ export default function Dock() {
       <style>{`
         .os-dock {
           position: fixed;
-          bottom: 2.25rem;
-          left: 50%;
-          transform: translateX(-50%);
           z-index: 9999;
           display: flex;
           align-items: center;
-          gap: 1rem;
-          padding: .25rem 2rem;
-          background: rgba(255, 255, 255, .1);
-          backdrop-filter: blur(2.3px) saturate(2.4);
-          -webkit-backdrop-filter: blur(2.3px) saturate(2.4);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 
+          justify-content: space-around;
+          backdrop-filter: blur(12px) saturate(1.8);
+          -webkit-backdrop-filter: blur(12px) saturate(1.8);
+          background: rgba(30, 30, 46, 0.75);
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4), 
                       0 0 20px 2px var(--dock-glow);
-          border-radius: 1.25rem;
-          width: max-content;
           transition: box-shadow 0.3s ease;
+        }
+
+        /* Mobile View: Full Width Bottom Nav */
+        @media (max-width: 639px) {
+          .os-dock {
+            bottom: 0px;
+            left: 0px;
+            width: 100vw;
+            padding: 0.5rem 1rem;
+            border-radius: 0px;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+          }
+        }
+
+        /* Desktop View: Floating Mac-style Dock */
+        @media (min-width: 640px) {
+          .os-dock {
+            bottom: 2.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: max-content;
+            padding: .25rem 2rem;
+            gap: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1.25rem;
+          }
         }
 
         .dock-icon-wrapper {
@@ -70,15 +91,22 @@ export default function Dock() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 5.25rem;
-          height: 5.25rem;
+          width: 4.25rem;
+          height: 4.25rem;
           border-radius: 0rem;
           cursor: pointer;
           transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
+        @media (min-width: 640px) {
+          .dock-icon-wrapper {
+            width: 5.25rem;
+            height: 5.25rem;
+          }
+        }
+
         .dock-icon-wrapper:hover {
-          border-radius: 1.5rem;
+          border-radius: 1rem;
           background: rgba(255, 255, 255, 0.12);
           border-color: rgba(255, 255, 255, 0.25);
           box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
@@ -87,11 +115,12 @@ export default function Dock() {
         .dock-icon-wrapper.focused {
           background: var(--dock-focus-bg);
           border-color: var(--dock-border);
+          border-radius: 1rem;
         }
 
         .app-indicator {
           position: absolute;
-          bottom: -4px;
+          bottom: 2px;
           width: 4px;
           height: 4px;
           border-radius: 50%;
@@ -100,7 +129,7 @@ export default function Dock() {
         }
 
         .app-indicator.active {
-          width: 16px;
+          width: 14px;
           border-radius: 4px;
           background-color: var(--dock-indicator);
           box-shadow: 0 0 8px var(--dock-indicator);
@@ -131,12 +160,11 @@ export default function Dock() {
               title={app.name}
             >
               <Image 
-                className="select-none object-contain" 
+                className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12" 
                 src={app.icon} 
                 alt={app.name} 
-                width={64} 
-                height={64} 
-                style={{ width: 'auto', height: 'auto' }}
+                width={48} 
+                height={48} 
                 priority 
               />
               {isOpen && (
