@@ -4,6 +4,8 @@ export interface WidgetConfig {
   id: string;
   x: number;
   y: number;
+  xRatio?: number;
+  yRatio?: number;
   isOpen: boolean;
   zIndex: number;
 }
@@ -31,9 +33,9 @@ const getInitialState = (): WidgetsState => {
 
   return {
     widgets: {
-      clock: { id: 'clock', x: 1000, y: 40, isOpen: true, zIndex: 1 },
-      music: { id: 'music', x: 1000, y: 190, isOpen: true, zIndex: 2 },
-      git: { id: 'git', x: 1000, y: 380, isOpen: true, zIndex: 3 },
+      clock: { id: 'clock', x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05, isOpen: true, zIndex: 1 },
+      music: { id: 'music', x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25, isOpen: true, zIndex: 2 },
+      git: { id: 'git', x: 1000, y: 380, xRatio: 0.75, yRatio: 0.50, isOpen: true, zIndex: 3 },
     },
     highestZIndex: 3,
   };
@@ -52,11 +54,16 @@ export const widgetsSlice = createSlice({
     hydrateWidgets: (state, action: PayloadAction<WidgetsState>) => {
       return action.payload;
     },
-    moveWidget: (state, action: PayloadAction<{ id: string; x: number; y: number }>) => {
-      const { id, x, y } = action.payload;
+    moveWidget: (
+      state,
+      action: PayloadAction<{ id: string; x: number; y: number; xRatio: number; yRatio: number }>
+    ) => {
+      const { id, x, y, xRatio, yRatio } = action.payload;
       if (state.widgets[id]) {
         state.widgets[id].x = x;
         state.widgets[id].y = y;
+        state.widgets[id].xRatio = xRatio;
+        state.widgets[id].yRatio = yRatio;
         saveState(state);
       }
     },
@@ -85,6 +92,8 @@ export const widgetsSlice = createSlice({
           id,
           x: 1000,
           y: 200 + Object.keys(state.widgets).length * 60,
+          xRatio: 0.75,
+          yRatio: 0.3 + (Object.keys(state.widgets).length * 0.15),
           isOpen: true,
           zIndex: state.highestZIndex,
         };
