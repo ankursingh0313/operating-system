@@ -152,6 +152,40 @@ export default function Window({
     }
   }
 
+  // 1. Smooth Dragging Handler (Supports both Mouse and Touch)
+  const handleTouchStartHeader = (e: React.TouchEvent) => {
+    dispatch(focusApp(id))
+    // if (isMaximized || window.innerWidth >= 640) return // Keep mobile-only or adapt as needed
+
+    const touch = e.touches[0]
+    const startX = touch.clientX - posRef.current.x
+    const startY = touch.clientY - posRef.current.y
+    let animationFrameId: number | null = null
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
+
+      animationFrameId = requestAnimationFrame(() => {
+        const moveTouch = moveEvent.touches[0]
+        const newX = moveTouch.clientX - startX
+        const newY = Math.max(0, moveTouch.clientY - startY)
+        posRef.current = { x: newX, y: newY }
+
+        if (windowRef.current) {
+          windowRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0px)`
+        }
+      })
+    }
+
+    const handleTouchEnd = () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
+    window.addEventListener('touchend', handleTouchEnd)
+  }
   return (
     <div
       ref={windowRef}
@@ -175,7 +209,8 @@ export default function Window({
       {/* Window Header */}
       <div
         onMouseDown={handleMouseDownHeader}
-        className="h-11 px-4 flex items-center justify-between bg-white/[0.04] border-b border-white/10 select-none cursor-grab active:cursor-grabbing"
+        onTouchStart={handleTouchStartHeader}
+        className="h-11 px-4 flex items-center justify-between bg-white/[0.04] border-b border-white/10 select-none cursor-grab active:cursor-grabbing touch-none"
       >
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold tracking-wide text-gray-200">{title}</span>

@@ -124,10 +124,81 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
     window.addEventListener('mouseup', handleMouseUp)
   }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) return
+    dispatch(focusWidget(id))
+    isDragging.current = true
+
+    if (!widgetRef.current) return
+    const touch = e.touches[0]
+    const rect = widgetRef.current.getBoundingClientRect()
+
+    dragOffset.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    }
+
+    let animationFrameId: number | null = null
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (!isDragging.current || !widgetRef.current || moveEvent.touches.length === 0) return
+      if (moveEvent.cancelable) moveEvent.preventDefault()
+
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
+
+      const moveTouch = moveEvent.touches[0]
+      animationFrameId = requestAnimationFrame(() => {
+        const currentRect = widgetRef.current!.getBoundingClientRect()
+        const maxX = Math.max(0, window.innerWidth - currentRect.width - 20)
+        const maxY = Math.max(0, window.innerHeight - currentRect.height - 20)
+
+        const newX = Math.max(10, Math.min(moveTouch.clientX - dragOffset.current.x, maxX))
+        const newY = Math.max(10, Math.min(moveTouch.clientY - dragOffset.current.y, maxY))
+
+        widgetRef.current!.style.transform = `translate3d(${newX}px, ${newY}px, 0px)`
+      })
+    }
+
+    const handleTouchEnd = () => {
+      if (!isDragging.current || !widgetRef.current) return
+      isDragging.current = false
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
+
+      const finalRect = widgetRef.current.getBoundingClientRect()
+      const maxX = Math.max(1, window.innerWidth - finalRect.width - 20)
+      const maxY = Math.max(1, window.innerHeight - finalRect.height - 20)
+
+      const finalX = Math.max(10, Math.min(finalRect.left, maxX))
+      const finalY = Math.max(10, Math.min(finalRect.top, maxY))
+
+      const xRatio = finalX / maxX
+      const yRatio = finalY / maxY
+
+      dispatch(
+        moveWidget({
+          id,
+          x: Math.round(finalX),
+          y: Math.round(finalY),
+          xRatio,
+          yRatio,
+        })
+      )
+
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('touchcancel', handleTouchEnd)
+    }
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchend', handleTouchEnd)
+    window.addEventListener('touchcancel', handleTouchEnd)
+  }
+
   return (
     <div
       ref={widgetRef}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       style={{
         position: 'absolute',
         left: '0px',
@@ -136,7 +207,7 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
         transform: `translate3d(${widgetState.x || 0}px, ${widgetState.y || 0}px, 0px)`,
         cursor: 'grab',
       }}
-      className="widget-card select-none active:cursor-grabbing absolute"
+      className="widget-card select-none active:cursor-grabbing absolute touch-none"
     >
       <style>{`
         .widget-card {
