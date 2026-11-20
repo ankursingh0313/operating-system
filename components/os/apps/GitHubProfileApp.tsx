@@ -86,7 +86,9 @@ export default function GitHubProfileApp() {
                         {user.login} · he/him
                     </p>
                     <p className="text-xs font-semibold text-gray-300 mt-1">
-                        Full-stack software developer specializing in MERN stack, Web3 systems, and high-throughput backend architecture.
+                        Full-stack software developer specializing in MERN
+                        stack, Web3 systems, and high-throughput backend
+                        architecture.
                     </p>
                 </div>
 
@@ -270,7 +272,28 @@ export default function GitHubProfileApp() {
                                         <div className="flex items-center gap-2">
                                             {repo.language && (
                                                 <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                                                    <span
+                                                        className="w-2 h-2 rounded-full bg-amber-400 inline-block"
+                                                        style={{
+                                                            backgroundColor:
+                                                                repo.language ===
+                                                                "JavaScript"
+                                                                    ? "#fbbf24"
+                                                                    : repo.language ===
+                                                                        "TypeScript"
+                                                                      ? "#2b74db"
+                                                                      : repo.language ===
+                                                                          "Java"
+                                                                        ? "#4ade80"
+                                                                        : repo.language ===
+                                                                            "C"
+                                                                          ? "#c084fc"
+                                                                          : repo.language ===
+                                                                              "Kotlin"
+                                                                            ? "#fb64b6"
+                                                                            : "transparent",
+                                                        }}
+                                                    />
                                                     {repo.language}
                                                 </span>
                                             )}
