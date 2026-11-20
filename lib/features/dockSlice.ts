@@ -50,8 +50,12 @@ export const dockSlice = createSlice({
       state.openApps = state.openApps.filter((id) => id !== appId)
       state.minimizedApps = state.minimizedApps.filter((id) => id !== appId)
       state.windowOrder = state.windowOrder.filter((id) => id !== appId)
+
       if (state.focusedApp === appId) {
-        state.focusedApp = state.windowOrder[state.windowOrder.length - 1] || null
+        const remainingOpen = state.windowOrder.filter(
+          (id) => state.openApps.includes(id) && !state.minimizedApps.includes(id)
+        )
+        state.focusedApp = remainingOpen[remainingOpen.length - 1] ?? null
       }
     },
     minimizeApp: (state, action: PayloadAction<string>) => {

@@ -35,7 +35,10 @@ export default function Dock() {
   const theme = COLOR_PACKAGES[activeAccent]
 
   const handleAppClick = (appId: string) => {
-  if (focusedApp === appId && appId !== 'apps') return
+  const isAlreadyOpen = openApps.includes(appId)
+  if (isAlreadyOpen && focusedApp === appId && appId !== 'apps') {
+    return
+  }
   dispatch(openApp(appId))
 }
   return (
@@ -149,7 +152,7 @@ export default function Dock() {
           if (!app) return null
 
           const isOpen = openApps.includes(app.id)
-          const isFocused = focusedApp === app.id
+          const isFocused = isOpen && focusedApp === app.id
 
           return (
             <div
