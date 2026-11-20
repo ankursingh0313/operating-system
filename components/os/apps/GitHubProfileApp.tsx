@@ -86,7 +86,7 @@ export default function GitHubProfileApp() {
                         {user.login} · he/him
                     </p>
                     <p className="text-xs font-semibold text-gray-300 mt-1">
-                        Full Stack Developer
+                        Full-stack software developer specializing in MERN stack, Web3 systems, and high-throughput backend architecture.
                     </p>
                 </div>
 
