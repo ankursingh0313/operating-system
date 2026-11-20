@@ -22,15 +22,27 @@ export const dockSlice = createSlice({
   reducers: {
     openApp: (state, action: PayloadAction<string>) => {
       const appId = action.payload
+
+      // Clicking the All Apps button again toggles it closed
+      if (appId === 'apps' && state.openApps.includes('apps')) {
+        state.openApps = state.openApps.filter((id) => id !== 'apps')
+        state.minimizedApps = state.minimizedApps.filter((id) => id !== 'apps')
+        state.windowOrder = state.windowOrder.filter((id) => id !== 'apps')
+        if (state.focusedApp === 'apps') {
+          state.focusedApp = state.windowOrder[state.windowOrder.length - 1] || null
+        }
+        return
+      }
+
       if (!state.openApps.includes(appId)) {
         state.openApps.push(appId)
       }
       // Un-minimize if it was minimized
-      state.minimizedApps = state.minimizedApps.filter(id => id !== appId)
-      
+      state.minimizedApps = state.minimizedApps.filter((id) => id !== appId)
+
       // Bring to front
       state.focusedApp = appId
-      state.windowOrder = state.windowOrder.filter(id => id !== appId)
+      state.windowOrder = state.windowOrder.filter((id) => id !== appId)
       state.windowOrder.push(appId)
     },
     closeApp: (state, action: PayloadAction<string>) => {
@@ -48,14 +60,17 @@ export const dockSlice = createSlice({
         state.minimizedApps.push(appId)
       }
       if (state.focusedApp === appId) {
-        state.focusedApp = state.windowOrder.filter(id => !state.minimizedApps.includes(id) && id !== appId).slice(-1)[0] || null
+        state.focusedApp =
+          state.windowOrder
+            .filter((id) => !state.minimizedApps.includes(id) && id !== appId)
+            .slice(-1)[0] || null
       }
     },
     focusApp: (state, action: PayloadAction<string>) => {
       const appId = action.payload
       state.focusedApp = appId
-      state.minimizedApps = state.minimizedApps.filter(id => id !== appId)
-      state.windowOrder = state.windowOrder.filter(id => id !== appId)
+      state.minimizedApps = state.minimizedApps.filter((id) => id !== appId)
+      state.windowOrder = state.windowOrder.filter((id) => id !== appId)
       state.windowOrder.push(appId)
     },
   },

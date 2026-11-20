@@ -35,10 +35,9 @@ export default function Dock() {
   const theme = COLOR_PACKAGES[activeAccent]
 
   const handleAppClick = (appId: string) => {
-    if (focusedApp === appId) return
-    dispatch(openApp(appId))
-  }
-
+  if (focusedApp === appId && appId !== 'apps') return
+  dispatch(openApp(appId))
+}
   return (
     <>
       <style>{`
