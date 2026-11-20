@@ -4,6 +4,7 @@ import themeReducer from './features/themeSlice';
 import contextMenuReducer from './features/contextMenuSlice';
 import dockReducer from './features/dockSlice';
 import widgetsReducer from './features/widgetsSlice';
+import githubReducer from './features/githubSlice';
 
 export const makeStore = () => {
   return configureStore({
@@ -12,6 +13,7 @@ export const makeStore = () => {
       contextMenu: contextMenuReducer,
       dock: dockReducer,
       widgets: widgetsReducer,
+      github: githubReducer,
     },
     // Completely disable devtools and middleware checks during SSR to stop Math.random() triggers
     devTools: process.env.NODE_ENV !== 'production' && typeof window !== 'undefined',

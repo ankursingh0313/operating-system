@@ -8,6 +8,12 @@ import {
     toggleMode,
     setMode,
 } from "@/lib/features/themeSlice";
+import {
+    setGitHubLoading,
+    setGitHubData,
+    setGitHubError,
+    type GitHubData,
+} from "@/lib/features/githubSlice";
 import Wallpaper from "@/components/os/Wallpaper";
 import Dock from "@/components/os/Dock";
 import DraggableWidget from "@/components/os/DraggableWidget";
@@ -22,11 +28,42 @@ import GitHubProfileApp from "@/components/os/apps/GitHubProfileApp";
 import AppearanceApp from "@/components/os/apps/AppearanceApp";
 import { openApp } from "@/lib/features/dockSlice";
 import WidgetsApp from "@/components/os/apps/WidgetsApp";
+import { useEffect } from "react";
 
 export default function Home() {
     const dispatch = useAppDispatch();
     const { openApps } = useAppSelector((state) => state.dock);
     const { widgets } = useAppSelector((state) => state.widgets);
+    const githubState = useAppSelector((state) => state.github);
+    const githubData = githubState?.data ?? null;
+
+    useEffect(() => {
+        if (githubData) return;
+
+        let cancelled = false;
+        dispatch(setGitHubLoading());
+
+        fetch("/api/github")
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load profile from GraphQL route");
+                return res.json();
+            })
+            .then((resData: GitHubData) => {
+                if (!cancelled) {
+                    dispatch(setGitHubData(resData));
+                }
+            })
+            .catch((err: unknown) => {
+                if (!cancelled) {
+                    const msg = err instanceof Error ? err.message : "An unknown error occurred";
+                    dispatch(setGitHubError(msg));
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [dispatch, githubData]);
 
     // Context menu to test live theme & wallpaper switching
     const desktopMenu = useContextMenu([
