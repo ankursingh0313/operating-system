@@ -29,6 +29,7 @@ import AppearanceApp from "@/components/os/apps/AppearanceApp";
 import { openApp } from "@/lib/features/dockSlice";
 import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import { useEffect } from "react";
+import AllAppsView from "@/components/os/apps/AllAppsView";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -215,22 +216,7 @@ export default function Home() {
                         );
                     case "apps":
                         return (
-                            <Window
-                                key="apps"
-                                id="apps"
-                                title="Applications"
-                                defaultWidth={600}
-                                defaultHeight={400}
-                            >
-                                <div className="flex flex-col gap-2">
-                                    <h3 className="font-bold text-base">
-                                        System Utilities
-                                    </h3>
-                                    <p className="opacity-70 text-xs">
-                                        All OS packages running smoothly.
-                                    </p>
-                                </div>
-                            </Window>
+                            <AllAppsView key="apps" />
                         );
                     case "appearance":
                         return (
