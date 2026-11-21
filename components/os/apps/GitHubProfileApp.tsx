@@ -9,6 +9,7 @@ import {
     setGitHubError,
     type GitHubData,
 } from "@/lib/features/githubSlice";
+import { IoIosStar } from "react-icons/io";
 
 export default function GitHubProfileApp() {
     const dispatch = useAppDispatch();
@@ -298,7 +299,14 @@ export default function GitHubProfileApp() {
                                                 </span>
                                             )}
                                         </div>
-                                        <span>⭐ {repo.stargazers_count}</span>
+                                        {repo.stargazers_count > 0 && (
+                                            <span className="inline-flex items-center gap-1 text-amber-300">
+                                                <span>
+                                                    {repo.stargazers_count}
+                                                </span>
+                                                <IoIosStar className="w-3.5 h-3.5 shrink-0" />
+                                            </span>
+                                        )}
                                     </div>
                                 </a>
                             ))}
