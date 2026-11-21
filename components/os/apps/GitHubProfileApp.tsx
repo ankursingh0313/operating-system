@@ -11,6 +11,25 @@ import {
 } from "@/lib/features/githubSlice";
 import { IoIosStar } from "react-icons/io";
 
+const LANGUAGE_COLORS: Record<string, string> = {
+  Python: '#3572A5',
+  JavaScript: '#f1e05a',
+  TypeScript: '#3178c6',
+  Java: '#b07219',
+  HTML: '#e34c26',
+  CSS: '#563d7c',
+  Ruby: '#701516',
+  Swift: '#F05138',
+  C: '#555555',
+  'C++': '#f34b7d',
+  'C#': '#7355dd',
+  Go: '#00ADD8',
+  Rust: '#dea584',
+  PHP: '#4F5D95',
+  Shell: '#89e051',
+  Kotlin: '#A97BFF',
+}
+
 export default function GitHubProfileApp() {
     const dispatch = useAppDispatch();
     const { data, loading, error } = useAppSelector((state) => state.github);
@@ -274,27 +293,10 @@ export default function GitHubProfileApp() {
                                             {repo.language && (
                                                 <span className="flex items-center gap-1">
                                                     <span
-                                                        className="w-2 h-2 rounded-full bg-amber-400 inline-block"
-                                                        style={{
-                                                            backgroundColor:
-                                                                repo.language ===
-                                                                "JavaScript"
-                                                                    ? "#fbbf24"
-                                                                    : repo.language ===
-                                                                        "TypeScript"
-                                                                      ? "#2b74db"
-                                                                      : repo.language ===
-                                                                          "Java"
-                                                                        ? "#4ade80"
-                                                                        : repo.language ===
-                                                                            "C"
-                                                                          ? "#c084fc"
-                                                                          : repo.language ===
-                                                                              "Kotlin"
-                                                                            ? "#fb64b6"
-                                                                            : repo.language === "Python"?
-                                                                            "#":"transparent",
-                                                        }}
+                                                    className="w-2 h-2 rounded-full inline-block"
+                                                    style={{
+                                                        backgroundColor: LANGUAGE_COLORS[repo.language] ?? '#fbbf2400',
+                                                    }}
                                                     />
                                                     {repo.language}
                                                 </span>
