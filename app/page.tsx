@@ -31,6 +31,7 @@ import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import { useEffect } from "react";
 import AllAppsView from "@/components/os/apps/AllAppsView";
 import EmailApp from "@/components/os/apps/EmailApp";
+import BootScreen from "@/components/os/BootScreen";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -103,6 +104,7 @@ export default function Home() {
             {...desktopMenu}
             className="w-screen h-screen overflow-hidden relative  text-white select-none flex flex-col justify-between"
         >
+            <BootScreen />
             {/* Active Theme-Aware Wallpaper */}
             <Wallpaper />
 
