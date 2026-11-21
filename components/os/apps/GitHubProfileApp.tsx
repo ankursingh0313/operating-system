@@ -10,6 +10,7 @@ import {
     type GitHubData,
 } from "@/lib/features/githubSlice";
 import { IoIosStar, IoMdPeople, IoMdRefresh } from "react-icons/io";
+import { MdArrowOutward } from "react-icons/md";
 
 const LANGUAGE_COLORS: Record<string, string> = {
   Python: '#3572A5',
@@ -121,9 +122,9 @@ export default function GitHubProfileApp() {
                     href={user.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-1.5 px-3 rounded-lg bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-xs font-medium text-center text-gray-200 transition"
+                    className="w-full py-1.5 px-3 rounded-lg bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-xs font-medium text-center text-gray-200 transition flex items-center justify-center gap-1 cursor-pointer"
                 >
-                    View on GitHub ↗
+                    View on GitHub <MdArrowOutward  className="text-sm"/>
                 </a>
 
                 <div className="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-800 pt-4">
