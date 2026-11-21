@@ -9,7 +9,7 @@ import {
     setGitHubError,
     type GitHubData,
 } from "@/lib/features/githubSlice";
-import { IoIosStar } from "react-icons/io";
+import { IoIosStar, IoMdPeople, IoMdRefresh } from "react-icons/io";
 
 const LANGUAGE_COLORS: Record<string, string> = {
   Python: '#3572A5',
@@ -127,7 +127,9 @@ export default function GitHubProfileApp() {
                 </a>
 
                 <div className="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-800 pt-4">
-                    <span>👥 {user.followers} followers</span>
+                    <span className="flex items-center gap-1">
+                        <IoMdPeople /> {user.followers} followers
+                    </span>
                     <span>·</span>
                     <span>{user.following} following</span>
                 </div>
@@ -197,7 +199,7 @@ export default function GitHubProfileApp() {
                                             : "inline-block"
                                     }
                                 >
-                                    ↻
+                                    <IoMdRefresh />
                                 </span>
                                 <span>Refresh</span>
                             </button>
