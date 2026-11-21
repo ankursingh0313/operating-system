@@ -30,6 +30,7 @@ import { openApp } from "@/lib/features/dockSlice";
 import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import { useEffect } from "react";
 import AllAppsView from "@/components/os/apps/AllAppsView";
+import EmailApp from "@/components/os/apps/EmailApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -166,17 +167,9 @@ export default function Home() {
                                 id="email"
                                 title="Email Client"
                                 defaultWidth={600}
-                                defaultHeight={400}
+                                defaultHeight={500}
                             >
-                                <div className="flex flex-col gap-2">
-                                    <h3 className="font-bold text-base">
-                                        Inbox
-                                    </h3>
-                                    <p className="opacity-70 text-xs">
-                                        No new messages. Backend telemetry is
-                                        nominal.
-                                    </p>
-                                </div>
+                                <EmailApp />
                             </Window>
                         );
                     case "available":
