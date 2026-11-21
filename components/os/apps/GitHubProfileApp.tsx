@@ -292,7 +292,8 @@ export default function GitHubProfileApp() {
                                                                           : repo.language ===
                                                                               "Kotlin"
                                                                             ? "#fb64b6"
-                                                                            : "transparent",
+                                                                            : repo.language === "Python"?
+                                                                            "#":"transparent",
                                                         }}
                                                     />
                                                     {repo.language}
