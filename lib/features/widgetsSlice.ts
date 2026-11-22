@@ -15,6 +15,37 @@ interface WidgetsState {
   highestZIndex: number;
 }
 
+const DEFAULT_WIDGETS: Record<string, WidgetConfig> = {
+  clock: { id: 'clock', x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05, isOpen: true, zIndex: 1 },
+  music: { id: 'music', x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25, isOpen: true, zIndex: 2 },
+  git: { id: 'git', x: 1000, y: 380, xRatio: 0.75, yRatio: 0.50, isOpen: true, zIndex: 3 },
+};
+
+// Re-indexes zIndex to 1..N with `bringToFrontId` placed at the top (N)
+function applyStackOrder(
+  widgets: Record<string, WidgetConfig>,
+  bringToFrontId?: string
+): number {
+  const orderedIds = Object.values(widgets)
+    .sort((a, b) => a.zIndex - b.zIndex)
+    .map((w) => w.id);
+
+  if (bringToFrontId && widgets[bringToFrontId]) {
+    const filtered = orderedIds.filter((id) => id !== bringToFrontId);
+    filtered.push(bringToFrontId);
+    filtered.forEach((id, idx) => {
+      widgets[id].zIndex = idx + 1;
+    });
+    return filtered.length;
+  }
+
+  orderedIds.forEach((id, idx) => {
+    widgets[id].zIndex = idx + 1;
+  });
+
+  return orderedIds.length;
+}
+
 // Safely load initial state from localStorage with robust fallbacks
 const getInitialState = (): WidgetsState => {
   if (typeof window !== 'undefined') {
@@ -23,21 +54,21 @@ const getInitialState = (): WidgetsState => {
       try {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.widgets) {
-          return parsed;
+          const count = applyStackOrder(parsed.widgets);
+          return {
+            widgets: parsed.widgets,
+            highestZIndex: count,
+          };
         }
-      } catch (e) {
+      } catch {
         // Fallback if JSON parsing fails
       }
     }
   }
 
   return {
-    widgets: {
-      clock: { id: 'clock', x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05, isOpen: true, zIndex: 1 },
-      music: { id: 'music', x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25, isOpen: true, zIndex: 2 },
-      git: { id: 'git', x: 1000, y: 380, xRatio: 0.75, yRatio: 0.50, isOpen: true, zIndex: 3 },
-    },
-    highestZIndex: 3,
+    widgets: DEFAULT_WIDGETS,
+    highestZIndex: Object.keys(DEFAULT_WIDGETS).length,
   };
 };
 
@@ -52,7 +83,12 @@ export const widgetsSlice = createSlice({
   initialState: getInitialState(),
   reducers: {
     hydrateWidgets: (state, action: PayloadAction<WidgetsState>) => {
-      return action.payload;
+      const nextWidgets = action.payload?.widgets ?? DEFAULT_WIDGETS;
+      const count = applyStackOrder(nextWidgets);
+      return {
+        widgets: nextWidgets,
+        highestZIndex: count,
+      };
     },
     moveWidget: (
       state,
@@ -70,8 +106,7 @@ export const widgetsSlice = createSlice({
     focusWidget: (state, action: PayloadAction<string>) => {
       const id = action.payload;
       if (state.widgets[id]) {
-        state.highestZIndex += 1;
-        state.widgets[id].zIndex = state.highestZIndex;
+        state.highestZIndex = applyStackOrder(state.widgets, id);
         saveState(state);
       }
     },
@@ -79,24 +114,24 @@ export const widgetsSlice = createSlice({
       const id = action.payload;
       if (state.widgets[id]) {
         state.widgets[id].isOpen = !state.widgets[id].isOpen;
-        // Automatically bring to front when opened
         if (state.widgets[id].isOpen) {
-          state.highestZIndex += 1;
-          state.widgets[id].zIndex = state.highestZIndex;
+          state.highestZIndex = applyStackOrder(state.widgets, id);
+        } else {
+          state.highestZIndex = applyStackOrder(state.widgets);
         }
         saveState(state);
       } else {
-        // If a widget ID doesn't exist yet, register it dynamically when toggled on
-        state.highestZIndex += 1;
+        const count = Object.keys(state.widgets).length;
         state.widgets[id] = {
           id,
           x: 1000,
-          y: 200 + Object.keys(state.widgets).length * 60,
+          y: 200 + count * 60,
           xRatio: 0.75,
-          yRatio: 0.3 + (Object.keys(state.widgets).length * 0.15),
+          yRatio: 0.3 + count * 0.15,
           isOpen: true,
-          zIndex: state.highestZIndex,
+          zIndex: count + 1,
         };
+        state.highestZIndex = applyStackOrder(state.widgets, id);
         saveState(state);
       }
     },
