@@ -32,6 +32,7 @@ import { useEffect } from "react";
 import AllAppsView from "@/components/os/apps/AllAppsView";
 import EmailApp from "@/components/os/apps/EmailApp";
 import BootScreen from "@/components/os/BootScreen";
+import ProfileApp from "@/components/os/apps/ProfileApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -195,18 +196,10 @@ export default function Home() {
                                 key="profile"
                                 id="profile"
                                 title="User Profile"
-                                defaultWidth={600}
+                                defaultWidth={900}
                                 defaultHeight={400}
                             >
-                                <div className="flex flex-col gap-2">
-                                    <h3 className="font-bold text-base">
-                                        Ankur Singh
-                                    </h3>
-                                    <p className="opacity-70 text-xs">
-                                        Leafnx Technologies Founder & Full-Stack
-                                        Developer.
-                                    </p>
-                                </div>
+                                <ProfileApp />
                             </Window>
                         );
                     case "apps":
