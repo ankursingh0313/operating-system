@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
-import { closeApp, focusApp } from '@/lib/features/dockSlice'
+import { closeApp, focusApp, toggleMaximizeApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
 
 interface WindowProps {
@@ -23,26 +23,33 @@ export default function Window({
 }: WindowProps) {
   const dispatch = useAppDispatch()
   const { accent, hydrated } = useAppSelector((state) => state.theme)
-  const { openApps, minimizedApps, focusedApp, windowOrder } = useAppSelector((state) => state.dock)
+  const { openApps, minimizedApps, maximizedApps, focusedApp, windowOrder } =
+    useAppSelector((state) => state.dock)
 
   const activeAccent = hydrated ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
 
   const isOpen = openApps.includes(id)
   const isMinimized = minimizedApps.includes(id)
+  const isMaximized = maximizedApps.includes(id)
   const isFocused = focusedApp === id
   const zIndex = windowOrder.indexOf(id) + 10
 
-  const [isMaximized, setIsMaximized] = useState(false)
   const [size, setSize] = useState({ width: defaultWidth, height: defaultHeight })
-  
+
   const windowRef = useRef<HTMLDivElement>(null)
-  
+
   // Safe initial positioning based on window width/height
   const index = Math.max(0, windowOrder.indexOf(id))
-  const initialX = typeof window !== 'undefined' ? (window.innerWidth - defaultWidth) / 2 + (index * 25) : 100
-  const initialY = typeof window !== 'undefined' ? (window.innerHeight - defaultHeight) / 2 + (index * 25) : 100
-  
+  const initialX =
+    typeof window !== 'undefined'
+      ? (window.innerWidth - defaultWidth) / 2 + index * 25
+      : 100
+  const initialY =
+    typeof window !== 'undefined'
+      ? (window.innerHeight - defaultHeight) / 2 + index * 25
+      : 100
+
   const posRef = useRef({ x: initialX, y: initialY })
   const unmaximizedPos = useRef({ x: initialX, y: initialY })
   const unmaximizedSize = useRef({ width: defaultWidth, height: defaultHeight })
@@ -75,7 +82,7 @@ export default function Window({
   // 1. Smooth Dragging Handler
   const handleMouseDownHeader = (e: React.MouseEvent) => {
     dispatch(focusApp(id))
-    if (isMaximized || window.innerWidth < 640) return // Disable dragging on mobile view
+    if (isMaximized || window.innerWidth < 640) return
 
     const startX = e.clientX - posRef.current.x
     const startY = e.clientY - posRef.current.y
@@ -132,18 +139,18 @@ export default function Window({
     window.addEventListener('mouseup', handleMouseUp)
   }
 
-  // 3. Toggle Maximize / Fullscreen
+  // 3. Toggle Maximize / Fullscreen (synced with Redux dockSlice)
   const toggleMaximize = () => {
     dispatch(focusApp(id))
     if (!isMaximized) {
       unmaximizedPos.current = { ...posRef.current }
       unmaximizedSize.current = { ...size }
-      setIsMaximized(true)
+      dispatch(toggleMaximizeApp(id))
       if (windowRef.current && window.innerWidth >= 640) {
         windowRef.current.style.transform = 'translate3d(0px, 0px, 0px)'
       }
     } else {
-      setIsMaximized(false)
+      dispatch(toggleMaximizeApp(id))
       posRef.current = { ...unmaximizedPos.current }
       setSize({ ...unmaximizedSize.current })
       if (windowRef.current && window.innerWidth >= 640) {
@@ -152,10 +159,10 @@ export default function Window({
     }
   }
 
-  // 1. Smooth Dragging Handler (Supports both Mouse and Touch)
+  // 4. Touch Dragging Handler
   const handleTouchStartHeader = (e: React.TouchEvent) => {
     dispatch(focusApp(id))
-    // if (isMaximized || window.innerWidth >= 640) return // Keep mobile-only or adapt as needed
+    if (isMaximized) return
 
     const touch = e.touches[0]
     const startX = touch.clientX - posRef.current.x
@@ -186,6 +193,7 @@ export default function Window({
     window.addEventListener('touchmove', handleTouchMove, { passive: true })
     window.addEventListener('touchend', handleTouchEnd)
   }
+
   return (
     <div
       ref={windowRef}
@@ -193,8 +201,8 @@ export default function Window({
       onClick={() => dispatch(focusApp(id))}
       className={`flex flex-col overflow-hidden shadow-2xl border border-white/20 bg-gray-900/90 backdrop-blur-2xl transition-[width,height] duration-150 
         ${
-          isMaximized 
-            ? 'fixed inset-0 w-screen h-screen rounded-none top-0 left-0 translate-x-0 bottom-0 z-[9999]' 
+          isMaximized
+            ? 'fixed inset-0 w-screen h-screen rounded-none top-0 left-0 translate-x-0 bottom-0 z-[9999]'
             : 'fixed top-12 left-1/2 -translate-x-1/2 w-[90vw] h-[75vh] sm:absolute sm:top-0 sm:left-0 sm:translate-x-0 sm:w-[var(--desktop-w)] sm:h-[var(--desktop-h)] rounded-2xl'
         }
         ${isFocused ? 'ring-1 ring-[var(--window-ring)]' : 'opacity-95'}

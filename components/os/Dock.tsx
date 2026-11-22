@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppSelector, useAppDispatch } from '@/lib/hooks'
 import { openApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
@@ -9,7 +9,7 @@ import Image from 'next/image'
 interface AppItem {
   id: string
   name: string
-  icon: string 
+  icon: string
 }
 
 const APP_REGISTRY: Record<string, AppItem> = {
@@ -20,33 +20,104 @@ const APP_REGISTRY: Record<string, AppItem> = {
   notes: { id: 'apps', name: 'Apps', icon: '/icons/apps/apps-2.png' },
 }
 
+const LEAVE_COLLAPSE_DELAY_MS = 1000
+
 export default function Dock() {
   const dispatch = useAppDispatch()
   const [isMounted, setIsMounted] = useState(false)
+  const [isDockHovered, setIsDockHovered] = useState(false)
+  const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
   const { accent, hydrated } = useAppSelector((state) => state.theme)
-  const { dockApps, openApps, focusedApp } = useAppSelector((state) => state.dock)
-  
-  const activeAccent = (isMounted && hydrated) ? accent : 'blue'
+  const { dockApps, openApps, maximizedApps, focusedApp } = useAppSelector(
+    (state) => state.dock
+  )
+
+  const activeAccent = isMounted && hydrated ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
 
+  // Collapse into a slim line only when the currently focused app is open & fullscreen
+  const isFocusedMaximized =
+    Boolean(focusedApp) &&
+    openApps.includes(focusedApp!) &&
+    maximizedApps.includes(focusedApp!)
+
+  const isCollapsed = isFocusedMaximized && !isDockHovered
+
+  const clearCollapseTimer = useCallback(() => {
+    if (collapseTimeoutRef.current) {
+      clearTimeout(collapseTimeoutRef.current)
+      collapseTimeoutRef.current = null
+    }
+  }, [])
+
+  const handleZoneEnter = useCallback(() => {
+    clearCollapseTimer()
+    if (isFocusedMaximized) {
+      setIsDockHovered(true)
+    }
+  }, [clearCollapseTimer, isFocusedMaximized])
+
+  const handleZoneLeave = useCallback(() => {
+    clearCollapseTimer()
+    if (!isFocusedMaximized) return
+
+    collapseTimeoutRef.current = setTimeout(() => {
+      setIsDockHovered(false)
+      collapseTimeoutRef.current = null
+    }, LEAVE_COLLAPSE_DELAY_MS)
+  }, [clearCollapseTimer, isFocusedMaximized])
+
+  // Clean up timer on unmount or when exiting fullscreen
+  useEffect(() => {
+    if (!isFocusedMaximized) {
+      clearCollapseTimer()
+      setIsDockHovered(false)
+    }
+  }, [isFocusedMaximized, clearCollapseTimer])
+
+  useEffect(() => {
+    return () => clearCollapseTimer()
+  }, [clearCollapseTimer])
+
   const handleAppClick = (appId: string) => {
-  const isAlreadyOpen = openApps.includes(appId)
-  if (isAlreadyOpen && focusedApp === appId && appId !== 'apps') {
-    return
+    const isAlreadyOpen = openApps.includes(appId)
+    if (isAlreadyOpen && focusedApp === appId && appId !== 'apps') {
+      return
+    }
+    dispatch(openApp(appId))
   }
-  dispatch(openApp(appId))
-}
+
   return (
     <>
       <style>{`
-        .os-dock {
+        /* Stable bottom hover band so dock animation never shifts the hit area */
+        .os-dock-zone {
           position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100vw;
+          height: 5.5rem;
           z-index: 9999;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          pointer-events: none;
+        }
+
+        @media (min-width: 640px) {
+          .os-dock-zone {
+            height: 8.75rem;
+          }
+        }
+
+        .os-dock {
+          pointer-events: auto;
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: space-around;
@@ -54,17 +125,24 @@ export default function Dock() {
           -webkit-backdrop-filter: blur(12px) saturate(1.8);
           background: rgba(30, 30, 46, 0.75);
           border-top: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4), 
+          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4),
                       0 0 20px 2px var(--dock-glow);
-          transition: box-shadow 0.3s ease;
+          overflow: hidden;
+          transition:
+            width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            padding 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            margin-bottom 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+            background 0.25s ease,
+            box-shadow 0.25s ease;
         }
 
         /* Mobile View: Full Width Bottom Nav */
         @media (max-width: 639px) {
           .os-dock {
-            bottom: 0px;
-            left: 0px;
             width: 100vw;
+            height: 5.25rem;
             padding: 0.5rem 1rem;
             border-radius: 0px;
             border-left: none;
@@ -76,15 +154,44 @@ export default function Dock() {
         /* Desktop View: Floating Mac-style Dock */
         @media (min-width: 640px) {
           .os-dock {
-            bottom: 2.25rem;
-            left: 50%;
-            transform: translateX(-50%);
+            margin-bottom: 2.25rem;
             width: max-content;
-            padding: .25rem 2rem;
+            min-width: 32rem;
+            height: 5.75rem;
+            padding: 0.25rem 2rem;
             gap: 1rem;
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 1.25rem;
           }
+        }
+
+        /* Collapsed Line Mode (when focused app is fullscreen) */
+        .os-dock.collapsed {
+          width: 13.5rem;
+          min-width: 0;
+          height: 6px;
+          padding: 0;
+          margin-bottom: 10px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.32);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+          cursor: pointer;
+        }
+
+        .os-dock-items {
+          display: flex;
+          align-items: center;
+          justify-content: space-around;
+          width: 100%;
+          gap: inherit;
+          transition: opacity 0.18s ease, transform 0.25s ease;
+        }
+
+        .os-dock.collapsed .os-dock-items {
+          opacity: 0;
+          transform: translateY(10px) scale(0.92);
+          pointer-events: none;
         }
 
         .dock-icon-wrapper {
@@ -138,43 +245,54 @@ export default function Dock() {
         }
       `}</style>
 
-      <div 
-        className="os-dock"
-        style={{
-          ['--dock-glow' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.15)`,
-          ['--dock-focus-bg' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.2)`,
-          ['--dock-border' as string]: theme.rgb,
-          ['--dock-indicator' as string]: theme.rgb,
-        }}
+      <div
+        className="os-dock-zone"
+        onMouseEnter={handleZoneEnter}
+        onMouseLeave={handleZoneLeave}
       >
-        {dockApps.map((appId: string) => {
-          const app = APP_REGISTRY[appId]
-          if (!app) return null
+        <div
+          onClick={() => {
+            if (isCollapsed) handleZoneEnter()
+          }}
+          className={`os-dock ${isCollapsed ? 'collapsed' : ''}`}
+          style={{
+            ['--dock-glow' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.15)`,
+            ['--dock-focus-bg' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.2)`,
+            ['--dock-border' as string]: theme.rgb,
+            ['--dock-indicator' as string]: theme.rgb,
+          }}
+        >
+          <div className="os-dock-items">
+            {dockApps.map((appId: string) => {
+              const app = APP_REGISTRY[appId]
+              if (!app) return null
 
-          const isOpen = openApps.includes(app.id)
-          const isFocused = isOpen && focusedApp === app.id
+              const isOpen = openApps.includes(app.id)
+              const isFocused = isOpen && focusedApp === app.id
 
-          return (
-            <div
-              key={app.id}
-              onClick={() => handleAppClick(app.id)}
-              className={`dock-icon-wrapper ${isFocused ? 'focused' : ''}`}
-              title={app.name}
-            >
-              <Image 
-                className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12" 
-                src={app.icon} 
-                alt={app.name} 
-                width={48} 
-                height={48} 
-                priority 
-              />
-              {isOpen && (
-                <span className={`app-indicator ${isFocused ? 'active' : ''}`} />
-              )}
-            </div>
-          )
-        })}
+              return (
+                <div
+                  key={app.id}
+                  onClick={() => handleAppClick(app.id)}
+                  className={`dock-icon-wrapper ${isFocused ? 'focused' : ''}`}
+                  title={app.name}
+                >
+                  <Image
+                    className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12"
+                    src={app.icon}
+                    alt={app.name}
+                    width={48}
+                    height={48}
+                    priority
+                  />
+                  {isOpen && (
+                    <span className={`app-indicator ${isFocused ? 'active' : ''}`} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </>
   )
