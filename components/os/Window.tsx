@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { closeApp, focusApp, toggleMaximizeApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { VscMultipleWindows, VscWindow } from 'react-icons/vsc'
+import { FaRegWindowRestore } from 'react-icons/fa'
+import { IoMdClose } from 'react-icons/io'
 
 interface WindowProps {
   id: string
@@ -218,7 +221,7 @@ export default function Window({
       <div
         onMouseDown={handleMouseDownHeader}
         onTouchStart={handleTouchStartHeader}
-        className="h-11 px-4 flex items-center justify-between bg-white/[0.04] border-b border-white/10 select-none cursor-grab active:cursor-grabbing touch-none"
+        className="h-10 px-4 flex items-center justify-between bg-white/[0.04] border-b border-white/10 select-none cursor-grab active:cursor-grabbing touch-none"
       >
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold tracking-wide text-gray-200">{title}</span>
@@ -228,17 +231,17 @@ export default function Window({
         <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={toggleMaximize}
-            className="w-3.5 h-3.5 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center transition text-[9px] text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
+            className="w-5 h-5 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
             title={isMaximized ? 'Restore' : 'Maximize'}
           >
-            {isMaximized ? '🗗' : '⁺'}
+            {isMaximized ? <VscMultipleWindows /> : <VscWindow />}
           </button>
           <button
             onClick={() => dispatch(closeApp(id))}
-            className="w-3.5 h-3.5 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition text-[9px] text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
+            className="w-5 h-5 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
             title="Close"
           >
-            ×
+            <IoMdClose />
           </button>
         </div>
       </div>
