@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { COLOR_PACKAGES } from "@/lib/themes/colorPackages";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
@@ -9,33 +9,117 @@ import {
     setGitHubError,
     type GitHubData,
 } from "@/lib/features/githubSlice";
+
 import { IoIosStar, IoMdPeople, IoMdRefresh } from "react-icons/io";
 import { MdArrowOutward } from "react-icons/md";
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  Python: '#3572A5',
-  JavaScript: '#f1e05a',
-  TypeScript: '#3178c6',
-  Java: '#b07219',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Ruby: '#701516',
-  Swift: '#F05138',
-  C: '#555555',
-  'C++': '#f34b7d',
-  'C#': '#7355dd',
-  Go: '#00ADD8',
-  Rust: '#dea584',
-  PHP: '#4F5D95',
-  Shell: '#89e051',
-  Kotlin: '#A97BFF',
+    Python: "#3572A5",
+    JavaScript: "#f1e05a",
+    TypeScript: "#3178c6",
+    Java: "#b07219",
+    HTML: "#e34c26",
+    CSS: "#563d7c",
+    Ruby: "#701516",
+    Swift: "#F05138",
+    C: "#555555",
+    "C++": "#f34b7d",
+    "C#": "#7355dd",
+    Go: "#00ADD8",
+    Rust: "#dea584",
+    PHP: "#4F5D95",
+    Shell: "#89e051",
+    Kotlin: "#A97BFF",
+};
+
+interface WeeklyPoint {
+    index: number;
+    label: string;
+    total: number;
 }
 
 export default function GitHubProfileApp() {
     const dispatch = useAppDispatch();
     const { data, loading, error } = useAppSelector((state) => state.github);
     const { accent, hydrated } = useAppSelector((state) => state.theme);
-    const theme = COLOR_PACKAGES[hydrated ? accent : "blue"];
+    const { maximizedApps } = useAppSelector((state) => state.dock);
+
+    const activeAccent = hydrated ? accent : "blue";
+    const theme = COLOR_PACKAGES[activeAccent];
+    const isFullscreen = maximizedApps.includes("github");
+
+    const [hoveredPoint, setHoveredPoint] = useState<{
+        point: WeeklyPoint;
+        xPct: number;
+        yPct: number;
+    } | null>(null);
+
+    const weeklyPoints = useMemo<WeeklyPoint[]>(() => {
+        const weeks = data?.contributionCalendar?.weeks ?? [];
+        return weeks.map((week, idx) => {
+            const total = week.contributionDays.reduce(
+                (sum, day) => sum + (day.contributionCount || 0),
+                0,
+            );
+            const firstDate = week.contributionDays[0]?.date;
+            const label = firstDate
+                ? new Date(firstDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                  })
+                : `W${idx + 1}`;
+            return { index: idx, label, total };
+        });
+    }, [data]);
+
+    const chartGeometry = useMemo(() => {
+        const width = 320;
+        const height = 136;
+        const padX = 10;
+        const padTop = 14;
+        const padBottom = 18;
+        const innerW = width - padX * 2;
+        const innerH = height - padTop - padBottom;
+
+        if (weeklyPoints.length === 0) {
+            return {
+                width,
+                height,
+                linePath: "",
+                areaPath: "",
+                maxVal: 0,
+                coords: [] as Array<{
+                    x: number;
+                    y: number;
+                    point: WeeklyPoint;
+                }>,
+            };
+        }
+
+        const maxVal = Math.max(1, ...weeklyPoints.map((p) => p.total));
+        const stepX =
+            weeklyPoints.length > 1 ? innerW / (weeklyPoints.length - 1) : 0;
+
+        const coords = weeklyPoints.map((point, idx) => {
+            const x = padX + idx * stepX;
+            const y = padTop + innerH - (point.total / maxVal) * innerH;
+            return { x, y, point };
+        });
+
+        const linePath = coords
+            .map(
+                (c, i) =>
+                    `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
+            )
+            .join(" ");
+
+        const last = coords[coords.length - 1];
+        const first = coords[0];
+        const baselineY = padTop + innerH;
+        const areaPath = `${linePath} L ${last.x.toFixed(1)} ${baselineY} L ${first.x.toFixed(1)} ${baselineY} Z`;
+
+        return { width, height, linePath, areaPath, maxVal, coords };
+    }, [weeklyPoints]);
 
     const handleRefresh = async () => {
         if (loading) return;
@@ -86,6 +170,16 @@ export default function GitHubProfileApp() {
     }
 
     const { user, contributionCalendar, repos } = data;
+    const peakWeekly = Math.max(0, ...weeklyPoints.map((p) => p.total));
+    const avgWeekly =
+        weeklyPoints.length > 0
+            ? (
+                  weeklyPoints.reduce((acc, p) => acc + p.total, 0) /
+                  weeklyPoints.length
+              ).toFixed(1)
+            : "0.0";
+
+    const gradientId = `contrib-grad-${activeAccent}`;
 
     return (
         <div className="flex flex-col md:flex-row h-full bg-[#0d1117] text-gray-200 p-4 md:p-6 gap-6 overflow-hidden">
@@ -124,7 +218,7 @@ export default function GitHubProfileApp() {
                     rel="noopener noreferrer"
                     className="w-full py-1.5 px-3 rounded-lg bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-xs font-medium text-center text-gray-200 transition flex items-center justify-center gap-1 cursor-pointer"
                 >
-                    View on GitHub <MdArrowOutward  className="text-sm"/>
+                    View on GitHub <MdArrowOutward className="text-sm" />
                 </a>
 
                 <div className="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-800 pt-4">
@@ -139,121 +233,297 @@ export default function GitHubProfileApp() {
             {/* Right Main Content Area */}
             <div className="flex-1 overflow-y-auto pr-2">
                 <div className="flex flex-col gap-6 shrink-0">
-                    {/* Real Contribution Calendar Heatmap Section */}
-                    <div className="p-4 rounded-xl bg-[#161b22] border border-gray-800 flex flex-col gap-3 shrink-0 shadow-lg">
-                        <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-gray-400">
-                            <span className="font-medium text-gray-300">
-                                {contributionCalendar.totalContributions.toLocaleString()}{" "}
-                                Contributions in the last year.
-                            </span>
-                            <div className="flex items-center gap-2.5">
-                                <span className="font-mono">
-                                    {user.public_repos} Public + Private Repos
+                    {/* Contribution Calendar + Fullscreen Line Chart Row */}
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 shrink-0">
+                        {/* Contribution Calendar Heatmap Card */}
+                        <div
+                            className={`${
+                                isFullscreen
+                                    ? "xl:col-span-7"
+                                    : "xl:col-span-12"
+                            } p-4 rounded-xl bg-[#161b22] border border-gray-800 flex flex-col justify-between gap-3 shadow-lg`}
+                        >
+                            <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-gray-400">
+                                <span className="font-medium text-gray-300">
+                                    {contributionCalendar.totalContributions.toLocaleString()}{" "}
+                                    Contributions in the last year.
                                 </span>
-                            </div>
-                        </div>
-
-                        {/* Scrollable Contribution Matrix Graph */}
-                        <div className="overflow-x-auto py-2 grid grid-cols-3 gap-0 scrollbar-thin scrollbar-thumb-gray-700 bg-[#0d1117] p-2 rounded-sm">
-                            {contributionCalendar.weeks.map((week, wIndex) => (
-                                <div
-                                    key={wIndex}
-                                    className="flex flex-row gap-1 justify-around p-1 rounded-sm"
-                                >
-                                    {week.contributionDays.map(
-                                        (day, dIndex) => (
-                                            <div
-                                                key={dIndex}
-                                                className="flex-1 rounded-sm bg-gray-900"
-                                                style={{
-                                                    boxShadow: theme.rawPrimary,
-                                                }}
-                                            >
-                                                <div
-                                                    title={`${day.contributionCount} contributions on ${day.date}`}
-                                                    className="flex-1 h-3 rounded-sm transition-transform hover:scale-125 cursor-pointer"
-                                                    style={{
-                                                        backgroundColor:
-                                                            theme.rgb,
-                                                        opacity: day.opacity,
-                                                    }}
-                                                />
-                                            </div>
-                                        ),
-                                    )}
+                                <div className="flex items-center gap-2.5">
+                                    <span className="font-mono">
+                                        {user.public_repos} Public + Private
+                                        Repos
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
 
-                        <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1">
-                            <button
-                                type="button"
-                                onClick={handleRefresh}
-                                disabled={loading}
-                                title="Refresh GitHub data"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-[11px] font-medium text-gray-200 transition disabled:opacity-50 cursor-pointer"
-                            >
-                                <span
-                                    className={
-                                        loading
-                                            ? "animate-spin inline-block"
-                                            : "inline-block"
-                                    }
+                            {/* Scrollable Contribution Matrix Graph */}
+                            <div className="overflow-x-auto py-2 grid grid-cols-3 gap-0 scrollbar-thin scrollbar-thumb-gray-700 bg-[#0d1117] p-2 rounded-sm">
+                                {contributionCalendar.weeks.map(
+                                    (week, wIndex) => (
+                                        <div
+                                            key={wIndex}
+                                            className="flex flex-row gap-1 justify-around p-1 rounded-sm"
+                                        >
+                                            {week.contributionDays.map(
+                                                (day, dIndex) => (
+                                                    <div
+                                                        key={dIndex}
+                                                        className="flex-1 rounded-sm bg-gray-900"
+                                                        style={{
+                                                            boxShadow:
+                                                                theme.rawPrimary,
+                                                        }}
+                                                    >
+                                                        <div
+                                                            title={`${day.contributionCount} contributions on ${day.date}`}
+                                                            className="flex-1 h-3 rounded-sm transition-transform hover:scale-125 cursor-pointer"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    theme.rgb,
+                                                                opacity:
+                                                                    day.opacity,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ),
+                                            )}
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+
+                            <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleRefresh}
+                                    disabled={loading}
+                                    title="Refresh GitHub data"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-[11px] font-medium text-gray-200 transition disabled:opacity-50 cursor-pointer"
                                 >
-                                    <IoMdRefresh />
-                                </span>
-                                <span>Refresh</span>
-                            </button>
-                            <div className="flex items-center gap-1.5">
-                                <span>Less</span>
-                                <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
                                     <span
-                                        className="w-full h-full block"
-                                        style={{
-                                            backgroundColor: theme.rgb,
-                                            opacity: 0,
-                                        }}
-                                    />
-                                </span>
-                                <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                    <span
-                                        className="w-full h-full block"
-                                        style={{
-                                            backgroundColor: theme.rgb,
-                                            opacity: 0.25,
-                                        }}
-                                    />
-                                </span>
-                                <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                    <span
-                                        className="w-full h-full block"
-                                        style={{
-                                            backgroundColor: theme.rgb,
-                                            opacity: 0.5,
-                                        }}
-                                    />
-                                </span>
-                                <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                    <span
-                                        className="w-full h-full block"
-                                        style={{
-                                            backgroundColor: theme.rgb,
-                                            opacity: 0.75,
-                                        }}
-                                    />
-                                </span>
-                                <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                    <span
-                                        className="w-full h-full block"
-                                        style={{
-                                            backgroundColor: theme.rgb,
-                                            opacity: 1,
-                                        }}
-                                    />
-                                </span>
-                                <span>More</span>
+                                        className={
+                                            loading
+                                                ? "animate-spin inline-block"
+                                                : "inline-block"
+                                        }
+                                    >
+                                        <IoMdRefresh />
+                                    </span>
+                                    <span>Refresh</span>
+                                </button>
+                                <div className="flex items-center gap-1.5">
+                                    <span>Less</span>
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                        <span
+                                            className="w-full h-full block"
+                                            style={{
+                                                backgroundColor: theme.rgb,
+                                                opacity: 0,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                        <span
+                                            className="w-full h-full block"
+                                            style={{
+                                                backgroundColor: theme.rgb,
+                                                opacity: 0.25,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                        <span
+                                            className="w-full h-full block"
+                                            style={{
+                                                backgroundColor: theme.rgb,
+                                                opacity: 0.5,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                        <span
+                                            className="w-full h-full block"
+                                            style={{
+                                                backgroundColor: theme.rgb,
+                                                opacity: 0.75,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                        <span
+                                            className="w-full h-full block"
+                                            style={{
+                                                backgroundColor: theme.rgb,
+                                                opacity: 1,
+                                            }}
+                                        />
+                                    </span>
+                                    <span>More</span>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Right Side Line Chart: Only Visible When GitHub Window Is Fullscreen */}
+                        {isFullscreen && (
+                            <div className="xl:col-span-5 p-4 rounded-xl bg-[#161b22] border border-gray-800 flex flex-col justify-between gap-2 shadow-lg">
+                                <div className="flex items-center justify-between gap-2 text-xs">
+                                    <div>
+                                        <span className="font-medium text-gray-200 block">
+                                            Weekly Trend
+                                        </span>
+                                        <span className="text-[10px] text-gray-400 font-mono">
+                                            Avg {avgWeekly}/wk · Peak{" "}
+                                            {peakWeekly}/wk
+                                        </span>
+                                    </div>
+                                    <span
+                                        className="text-[10px] px-2 py-0.5 rounded-full font-mono border border-white/10"
+                                        style={{ color: theme.rgb }}
+                                    >
+                                        {weeklyPoints.length}w
+                                    </span>
+                                </div>
+
+                                <div className="relative w-full h-[112px] bg-[#0d1117] rounded-lg border border-gray-800/80 p-2">
+                                    {hoveredPoint && (
+                                        <div
+                                            className="pointer-events-none absolute z-10 px-2 py-1 rounded bg-[#1f242c] border border-gray-700 text-[10px] font-mono text-gray-100 shadow-md whitespace-nowrap"
+                                            style={{
+                                                left: `${Math.min(72, Math.max(8, hoveredPoint.xPct))}%`,
+                                                top: "6px",
+                                            }}
+                                        >
+                                            <span style={{ color: theme.rgb }}>
+                                                {hoveredPoint.point.total}
+                                            </span>{" "}
+                                            commits · {hoveredPoint.point.label}
+                                        </div>
+                                    )}
+
+                                    <svg
+                                        viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`}
+                                        preserveAspectRatio="none"
+                                        className="w-full h-full block overflow-visible"
+                                        onMouseLeave={() =>
+                                            setHoveredPoint(null)
+                                        }
+                                    >
+                                        <defs>
+                                            <linearGradient
+                                                id={gradientId}
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="0%"
+                                                    stopColor={theme.rgb}
+                                                    stopOpacity="0.35"
+                                                />
+                                                <stop
+                                                    offset="100%"
+                                                    stopColor={theme.rgb}
+                                                    stopOpacity="0.0"
+                                                />
+                                            </linearGradient>
+                                        </defs>
+
+                                        {/* Subtle horizontal reference lines */}
+                                        <line
+                                            x1="10"
+                                            x2={chartGeometry.width - 10}
+                                            y1={chartGeometry.height - 18}
+                                            y2={chartGeometry.height - 18}
+                                            stroke="rgba(255,255,255,0.08)"
+                                            strokeWidth="1"
+                                        />
+                                        <line
+                                            x1="10"
+                                            x2={chartGeometry.width - 10}
+                                            y1="14"
+                                            y2="14"
+                                            stroke="rgba(255,255,255,0.05)"
+                                            strokeDasharray="3 3"
+                                            strokeWidth="1"
+                                        />
+
+                                        {chartGeometry.areaPath && (
+                                            <path
+                                                d={chartGeometry.areaPath}
+                                                fill={`url(#${gradientId})`}
+                                            />
+                                        )}
+
+                                        {chartGeometry.linePath && (
+                                            <path
+                                                d={chartGeometry.linePath}
+                                                fill="none"
+                                                stroke={theme.rgb}
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        )}
+
+                                        {/* Interactive hover columns for each week */}
+                                        {chartGeometry.coords.map((c) => {
+                                            const colW =
+                                                chartGeometry.coords.length > 1
+                                                    ? (chartGeometry.width -
+                                                          20) /
+                                                      chartGeometry.coords
+                                                          .length
+                                                    : 12;
+                                            const isHovered =
+                                                hoveredPoint?.point.index ===
+                                                c.point.index;
+
+                                            return (
+                                                <g key={c.point.index}>
+                                                    {isHovered && (
+                                                        <circle
+                                                            cx={c.x}
+                                                            cy={c.y}
+                                                            r="3.5"
+                                                            fill={theme.rgb}
+                                                            stroke="#0d1117"
+                                                            strokeWidth="1.5"
+                                                        />
+                                                    )}
+                                                    <rect
+                                                        x={c.x - colW / 2}
+                                                        y={0}
+                                                        width={Math.max(
+                                                            4,
+                                                            colW,
+                                                        )}
+                                                        height={
+                                                            chartGeometry.height
+                                                        }
+                                                        fill="transparent"
+                                                        className="cursor-crosshair"
+                                                        onMouseEnter={() =>
+                                                            setHoveredPoint({
+                                                                point: c.point,
+                                                                xPct:
+                                                                    (c.x /
+                                                                        chartGeometry.width) *
+                                                                    100,
+                                                                yPct:
+                                                                    (c.y /
+                                                                        chartGeometry.height) *
+                                                                    100,
+                                                            })
+                                                        }
+                                                    />
+                                                </g>
+                                            );
+                                        })}
+                                    </svg>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Repositories List Container */}
@@ -296,10 +566,15 @@ export default function GitHubProfileApp() {
                                             {repo.language && (
                                                 <span className="flex items-center gap-1">
                                                     <span
-                                                    className="w-2 h-2 rounded-full inline-block"
-                                                    style={{
-                                                        backgroundColor: LANGUAGE_COLORS[repo.language] ?? '#fbbf2400',
-                                                    }}
+                                                        className="w-2 h-2 rounded-full inline-block"
+                                                        style={{
+                                                            backgroundColor:
+                                                                LANGUAGE_COLORS[
+                                                                    repo
+                                                                        .language
+                                                                ] ??
+                                                                "#fbbf2400",
+                                                        }}
                                                     />
                                                     {repo.language}
                                                 </span>
