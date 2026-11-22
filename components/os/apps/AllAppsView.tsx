@@ -89,6 +89,17 @@ function renderAppIcon(iconKey: AppIconKey) {
                     priority
                 />
             );
+        case "terminal":
+            return (
+                <Image
+                    className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12"
+                    src="/icons/terminalIcon.png"
+                    alt="Terminal"
+                    width={48}
+                    height={48}
+                    priority
+                />
+            );
         case "apps":
         default:
             return <FaThLarge className="w-6 h-6" />;

@@ -34,6 +34,7 @@ import EmailApp from "@/components/os/apps/EmailApp";
 import BootScreen from "@/components/os/BootScreen";
 import ProfileApp from "@/components/os/apps/ProfileApp";
 import CustomCursor from "@/components/os/CustomCursor";
+import TerminalApp from "@/components/os/apps/TerminalApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -220,6 +221,18 @@ export default function Home() {
                                 <AppearanceApp />
                             </Window>
                         );
+                    case 'terminal':
+                        return (
+                            <Window
+                            key="terminal"
+                            id="terminal"
+                            title="Terminal — ankur@dossieros"
+                            defaultWidth={740}
+                            defaultHeight={460}
+                            >
+                            <TerminalApp />
+                            </Window>
+                        )
                     default:
                         return null;
                 }

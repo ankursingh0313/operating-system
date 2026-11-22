@@ -20,6 +20,21 @@ const APP_REGISTRY: Record<string, AppItem> = {
   notes: { id: 'apps', name: 'Apps', icon: '/icons/apps/apps-2.png' },
 }
 
+const UNPINNED_APP_META: Record<string, { name: string; icon: string }> = {
+  terminal: {
+    name: 'Terminal',
+    icon: '/icons/terminal.png',
+  },
+  widgets: {
+    name: 'Widget',
+    icon: '/icons/widgetsIcon.png',
+  },
+  appearance: {
+    name: 'Appearance',
+    icon: '/icons/themesIcon.png',
+  },
+}
+
 const LEAVE_COLLAPSE_DELAY_MS = 1000
 
 export default function Dock() {
@@ -39,6 +54,25 @@ export default function Dock() {
 
   const activeAccent = isMounted && hydrated ? accent : 'blue'
   const theme = COLOR_PACKAGES[activeAccent]
+
+  // Pinned app IDs derived from dockApps
+  const pinnedAppIds = new Set(
+    dockApps
+      .map((dockKey) => APP_REGISTRY[dockKey]?.id)
+      .filter((id): id is string => Boolean(id))
+  )
+
+  // Non-pinned apps that are currently open (automatically disappears on closeApp)
+  const unpinnedOpenApps: AppItem[] = openApps
+    .filter((appId) => !pinnedAppIds.has(appId))
+    .map((appId) => {
+      const meta = UNPINNED_APP_META[appId]
+      return {
+        id: appId,
+        name: meta?.name ?? appId.charAt(0).toUpperCase() + appId.slice(1),
+        icon: meta?.icon ?? '/icons/apps/apps-2.png',
+      }
+    })
 
   // Collapse into a slim line only when the currently focused app is open & fullscreen
   const isFocusedMaximized =
@@ -72,7 +106,6 @@ export default function Dock() {
     }, LEAVE_COLLAPSE_DELAY_MS)
   }, [clearCollapseTimer, isFocusedMaximized])
 
-  // Clean up timer on unmount or when exiting fullscreen
   useEffect(() => {
     if (!isFocusedMaximized) {
       clearCollapseTimer()
@@ -120,7 +153,6 @@ export default function Dock() {
           position: relative;
           display: flex;
           align-items: center;
-          justify-content: space-around;
           backdrop-filter: blur(12px) saturate(1.8);
           -webkit-backdrop-filter: blur(12px) saturate(1.8);
           background: rgba(30, 30, 46, 0.75);
@@ -142,8 +174,8 @@ export default function Dock() {
         @media (max-width: 639px) {
           .os-dock {
             width: 100vw;
-            height: 5.25rem;
-            padding: 0.5rem 1rem;
+            height: 4.5rem;
+            padding: 0.35rem 0.5rem;
             border-radius: 0px;
             border-left: none;
             border-right: none;
@@ -182,10 +214,26 @@ export default function Dock() {
         .os-dock-items {
           display: flex;
           align-items: center;
-          justify-content: space-around;
+          justify-content: center;
           width: 100%;
-          gap: inherit;
+          gap: 0.25rem;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
           transition: opacity 0.18s ease, transform 0.25s ease;
+        }
+
+        .os-dock-items::-webkit-scrollbar {
+          display: none;
+        }
+
+        @media (min-width: 640px) {
+          .os-dock-items {
+            justify-content: center;
+            overflow: visible;
+            gap: 1rem;
+          }
         }
 
         .os-dock.collapsed .os-dock-items {
@@ -194,23 +242,45 @@ export default function Dock() {
           pointer-events: none;
         }
 
+        .dock-divider {
+          width: 1px;
+          height: 1.75rem;
+          background: rgba(255, 255, 255, 0.14);
+          margin: 0 0.1rem;
+          flex-shrink: 0;
+        }
+
+        @media (min-width: 640px) {
+          .dock-divider {
+            height: 2.25rem;
+            margin: 0 0.15rem;
+          }
+        }
+
         .dock-icon-wrapper {
           position: relative;
           display: flex;
+          flex: 1 1 0;
+          min-width: 2.75rem;
+          max-width: 3.5rem;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 4.25rem;
-          height: 4.25rem;
-          border-radius: 0rem;
+          height: 3.5rem;
+          border-radius: 0.75rem;
           cursor: pointer;
+          flex-shrink: 0;
           transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @media (min-width: 640px) {
           .dock-icon-wrapper {
+            flex: 0 0 auto;
+            min-width: 5.25rem;
+            max-width: none;
             width: 5.25rem;
             height: 5.25rem;
+            border-radius: 0rem;
           }
         }
 
@@ -263,6 +333,33 @@ export default function Dock() {
           }}
         >
           <div className="os-dock-items">
+            {/* Left Side: Open Non-Pinned Apps */}
+            {unpinnedOpenApps.map((app) => {
+              const isFocused = focusedApp === app.id
+
+              return (
+                <div
+                  key={`unpinned-${app.id}`}
+                  onClick={() => handleAppClick(app.id)}
+                  className={`dock-icon-wrapper ${isFocused ? 'focused' : ''}`}
+                  title={app.name}
+                >
+                  <Image
+                    className="select-none object-contain w-8 h-8 sm:w-12 sm:h-12"
+                    src={app.icon}
+                    alt={app.name}
+                    width={48}
+                    height={48}
+                    priority
+                  />
+                  <span className={`app-indicator ${isFocused ? 'active' : ''}`} />
+                </div>
+              )
+            })}
+
+            {unpinnedOpenApps.length > 0 && <div className="dock-divider" />}
+
+            {/* Pinned Dock Apps */}
             {dockApps.map((appId: string) => {
               const app = APP_REGISTRY[appId]
               if (!app) return null
@@ -278,7 +375,7 @@ export default function Dock() {
                   title={app.name}
                 >
                   <Image
-                    className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12"
+                    className="select-none object-contain w-8 h-8 sm:w-12 sm:h-12"
                     src={app.icon}
                     alt={app.name}
                     width={48}

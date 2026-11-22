@@ -8,6 +8,7 @@ export type AppIconKey =
   | 'profile'
   | 'apps'
   | 'appearance'
+  | 'terminal'
 
 export interface OSAppItem {
   id: string
@@ -99,6 +100,18 @@ const initialState: AppsState = {
       defaultWidth: 550,
       defaultHeight: 420,
       routeOrView: 'widgets',
+    },
+    terminal: {
+      id: 'terminal',
+      title: 'Terminal',
+      description: 'Command-line interface for system administration.',
+      category: 'Developer',
+      iconKey: 'terminal',
+      installed: true,
+      isSystemApp: true,
+      defaultWidth: 550,
+      defaultHeight: 420,
+      routeOrView: 'terminal',
     },
   },
 }
