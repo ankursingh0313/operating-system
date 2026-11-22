@@ -33,6 +33,7 @@ import AllAppsView from "@/components/os/apps/AllAppsView";
 import EmailApp from "@/components/os/apps/EmailApp";
 import BootScreen from "@/components/os/BootScreen";
 import ProfileApp from "@/components/os/apps/ProfileApp";
+import CustomCursor from "@/components/os/CustomCursor";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -106,6 +107,7 @@ export default function Home() {
             className="w-screen h-screen overflow-hidden relative  text-white select-none flex flex-col justify-between"
         >
             <BootScreen />
+            <CustomCursor />
             {/* Active Theme-Aware Wallpaper */}
             <Wallpaper />
 
