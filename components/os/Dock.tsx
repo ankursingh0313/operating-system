@@ -266,7 +266,7 @@ export default function Dock() {
           z-index: 1;
           display: flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           width: 100%;
           gap: 0.25rem;
           overflow-x: auto;

@@ -76,25 +76,14 @@ export default function Home() {
     // Context menu to test live theme & wallpaper switching
     const desktopMenu = useContextMenu([
         {
-            id: "theme-light",
-            label: "Set Mode: Light",
-            dividerAbove: false,
-            onClick: () => dispatch(setMode("light")),
+          id: 'toggle-mode',
+          label: 'Toggle Dark/Light Mode',
+          onClick: () => dispatch(toggleMode()),
         },
-        {
-            id: "theme-dark",
-            label: "Set Mode: Dark",
-            onClick: () => dispatch(setMode("dark")),
-        },
-        // {
-        //   id: 'toggle-mode',
-        //   label: 'Toggle Dark/Light Mode',
-        //   dividerAbove: true,
-        //   onClick: () => dispatch(toggleMode()),
-        // },
         {
             id: "apearance",
             label: "Apearance",
+          dividerAbove: true,
             onClick: () => dispatch(openApp("appearance")),
         },
         {
