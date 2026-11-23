@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAppSelector } from '@/lib/hooks'
 import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import type { WallpaperType } from '@/lib/features/themeSlice'
+import { loadAllCustomWallpapers } from '@/lib/themes/customWallpaper'
 
 import GradientWallpaper from './wallpapers/GradientWallpaper'
 import GridWallpaper from './wallpapers/GridWallpaper'
@@ -18,9 +19,28 @@ import MosaicWallpaper from './wallpapers/MosaicWallpaper'
 
 export default function Wallpaper() {
   const [isMounted, setIsMounted] = useState(false)
+  const [customImages, setCustomImages] = useState<{
+    defaultUrl: string | null
+    lightUrl: string | null
+  }>({ defaultUrl: null, lightUrl: null })
 
   useEffect(() => {
     setIsMounted(true)
+    loadAllCustomWallpapers().then(setCustomImages)
+
+    const handleCustomWallpaperUpdated = () => {
+      loadAllCustomWallpapers().then(setCustomImages)
+    }
+    window.addEventListener('dossieros:custom-wallpaper-updated', handleCustomWallpaperUpdated)
+    window.addEventListener('storage', handleCustomWallpaperUpdated)
+
+    return () => {
+      window.removeEventListener(
+        'dossieros:custom-wallpaper-updated',
+        handleCustomWallpaperUpdated
+      )
+      window.removeEventListener('storage', handleCustomWallpaperUpdated)
+    }
   }, [])
 
   const { accent, mode, wallpaper, hydrated } = useAppSelector((state) => state.theme)
@@ -39,6 +59,27 @@ export default function Wallpaper() {
         style={{ backgroundColor: surface.rawBg }}
       />
     )
+  }
+
+  if ((activeWallpaper as string) === 'custom') {
+    const resolvedImage =
+      activeMode === 'light'
+        ? customImages.lightUrl || customImages.defaultUrl
+        : customImages.defaultUrl || customImages.lightUrl
+
+    if (resolvedImage) {
+      return (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none bg-cover bg-center bg-no-repeat transition-all duration-300"
+          style={{
+            backgroundImage: `url("${resolvedImage}")`,
+            backgroundColor: surface.rawBg,
+          }}
+        />
+      )
+    }
+
+    return <GradientWallpaper theme={theme} />
   }
 
   switch (activeWallpaper) {

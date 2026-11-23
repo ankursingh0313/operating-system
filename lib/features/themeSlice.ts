@@ -11,7 +11,8 @@ export type WallpaperType =
   | 'geometric'
   | 'mesh'
   | 'ripple'
-  | 'mosaic';
+  | 'mosaic'
+  | 'custom';
 
 const VALID_WALLPAPERS: WallpaperType[] = [
   'squares',
@@ -24,6 +25,7 @@ const VALID_WALLPAPERS: WallpaperType[] = [
   'mesh',
   'ripple',
   'mosaic',
+  'custom',
 ];
 
 interface ThemeState {
