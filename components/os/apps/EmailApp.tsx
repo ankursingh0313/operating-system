@@ -129,7 +129,7 @@ export default function EmailApp() {
         {/* Composer Header */}
         <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] pb-3 sm:pb-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-slate-400 font-medium">
+            {/* <div className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-slate-400 font-medium">
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{
@@ -138,7 +138,7 @@ export default function EmailApp() {
                 }}
               />
               New Message
-            </div>
+            </div> */}
             <h2 className="text-base sm:text-xl font-semibold tracking-tight text-white mt-0.5 sm:mt-1 truncate">
               Start a Conversation
             </h2>
@@ -147,10 +147,10 @@ export default function EmailApp() {
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] sm:text-[11px] text-slate-400 shrink-0">
+          {/* <div className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] sm:text-[11px] text-slate-400 shrink-0">
             <FaPaperclip className="w-2.5 h-2.5 opacity-70" />
             <span>Direct</span>
-          </div>
+          </div> */}
         </div>
 
         {/* Quick Topic Pills (horizontal scroll on mobile, wrapped on desktop) */}
