@@ -39,7 +39,7 @@ export default function ClockWidget() {
 
   return (
     <div
-      className={`widget-card flex flex-col justify-between p-5 min-w-[220px] h-[130px] ${surface.textPrimary}`}
+      className={` flex flex-col justify-between p-5 min-w-[220px] h-[130px] ${surface.textPrimary}`}
     >
       <div
         className={`flex justify-between items-center text-xs tracking-wider uppercase font-medium ${surface.textMuted}`}

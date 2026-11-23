@@ -27,7 +27,6 @@ import GitHubClientApp from "@/components/os/apps/GitHubClientApp";
 import GitHubProfileApp from "@/components/os/apps/GitHubProfileApp";
 import AppearanceApp from "@/components/os/apps/AppearanceApp";
 import { openApp } from "@/lib/features/dockSlice";
-import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import { useEffect } from "react";
 import AllAppsView from "@/components/os/apps/AllAppsView";
 import EmailApp from "@/components/os/apps/EmailApp";
@@ -35,6 +34,9 @@ import BootScreen from "@/components/os/BootScreen";
 import ProfileApp from "@/components/os/apps/ProfileApp";
 import CustomCursor from "@/components/os/CustomCursor";
 import TerminalApp from "@/components/os/apps/TerminalApp";
+import NotesWidget from "@/components/os/widgets/NotesWidget";
+import WidgetsApp from "@/components/os/apps/WidgetsApp";
+import TodoWidget from "@/components/os/widgets/TodoWidget";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -135,6 +137,18 @@ export default function Home() {
                                 <GitWidget />
                             </DraggableWidget>
                         );
+                    case "notes":
+                        return (
+                            <DraggableWidget key="notes" id="notes">
+                                <NotesWidget />
+                            </DraggableWidget>
+                        ); 
+                    case "todo":
+                        return (
+                            <DraggableWidget key="todo" id="todo">
+                                <TodoWidget />
+                            </DraggableWidget>
+                        );    
                     default:
                         return null;
                 }

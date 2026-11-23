@@ -5,30 +5,13 @@ import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { toggleWidget, focusWidget, moveWidget } from '@/lib/features/widgetsSlice'
 import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import { FaLayerGroup, FaUndo, FaPowerOff } from 'react-icons/fa'
+import {
+  getWidgetRegistryItem,
+  WIDGET_LIST,
+  WidgetRegistryItem,
+} from '../widgets/widgetRegistry'
 
-interface WidgetMeta {
-  name: string
-  label: string
-  defaultPos: { x: number; y: number; xRatio: number; yRatio: number }
-}
-
-const WIDGET_META: Record<string, WidgetMeta> = {
-  clock: {
-    name: 'Digital Clock & Date',
-    label: 'Clock & Date',
-    defaultPos: { x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05 },
-  },
-  music: {
-    name: 'Audio Player',
-    label: 'Audio Player',
-    defaultPos: { x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25 },
-  },
-  git: {
-    name: 'GitHub Contributions',
-    label: 'GitHub Activity',
-    defaultPos: { x: 1000, y: 380, xRatio: 0.75, yRatio: 0.5 },
-  },
-}
+const NOTES_STORAGE_KEY = 'dossieros_scratchpad_note_v1'
 
 export default function WidgetsApp() {
   const dispatch = useAppDispatch()
@@ -36,10 +19,19 @@ export default function WidgetsApp() {
   const { data: githubData } = useAppSelector((state) => state.github)
   const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
+  const [savedNotePreview, setSavedNotePreview] = useState('')
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    try {
+      const saved = window.localStorage.getItem(NOTES_STORAGE_KEY)
+      if (saved) {
+        setSavedNotePreview(saved.trim())
+      }
+    } catch {
+      // Ignore storage access issues
+    }
+  }, [widgets.notes?.isOpen])
 
   const activeAccent = isMounted && hydrated ? accent : 'blue'
   const activeMode = isMounted && hydrated ? mode : 'dark'
@@ -49,7 +41,24 @@ export default function WidgetsApp() {
   const surface = getSurfacePackage(activeMode)
   const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
-  const entries = Object.entries(widgets)
+  // Merge registry widgets with slice state so newly added widgets like `notes` always appear
+  const allWidgetIds = Array.from(
+    new Set([...WIDGET_LIST.map((item) => item.id), ...Object.keys(widgets)])
+  )
+
+  const entries = allWidgetIds.map((id) => {
+    const meta = getWidgetRegistryItem(id)
+    const cfg = widgets[id] ?? {
+      isOpen: meta.defaultOpen,
+      x: meta.defaultPos.x,
+      y: meta.defaultPos.y,
+      xRatio: meta.defaultPos.xRatio,
+      yRatio: meta.defaultPos.yRatio,
+      zIndex: 10,
+    }
+    return [id, cfg] as const
+  })
+
   const activeCount = entries.filter(([, cfg]) => cfg.isOpen).length
 
   const setAllWidgets = (targetOpen: boolean) => {
@@ -63,7 +72,7 @@ export default function WidgetsApp() {
   const handleResetPosition = (
     e: React.MouseEvent,
     id: string,
-    meta: WidgetMeta
+    meta: WidgetRegistryItem
   ) => {
     e.stopPropagation()
     dispatch(
@@ -88,26 +97,7 @@ export default function WidgetsApp() {
 
   const controlBtnClass = `${surface.subtleBg} ${surface.cardHoverBg} border ${surface.borderSubtle} ${surface.textSecondary}`
 
-  const renderUniformPreview = (id: string) => {
-    if (id === 'clock') {
-      return (
-        <div
-          className={`w-full h-full px-3 py-2.5 rounded-lg border flex flex-col justify-center ${previewBoxClass}`}
-        >
-          <span
-            className={`text-[10px] uppercase tracking-wider ${surface.textMuted}`}
-          >
-            Clock Widget
-          </span>
-          <span
-            className={`text-sm font-mono font-semibold mt-0.5 truncate ${surface.textPrimary}`}
-          >
-            Live Time &amp; Date
-          </span>
-        </div>
-      )
-    }
-
+  const renderUniformPreview = (id: string, meta: WidgetRegistryItem) => {
     if (id === 'music') {
       return (
         <div
@@ -123,10 +113,10 @@ export default function WidgetsApp() {
             <span
               className={`text-xs font-medium truncate ${surface.textPrimary}`}
             >
-              Audio Player
+              {meta.previewTitle}
             </span>
             <span className={`text-[10px] truncate ${surface.textMuted}`}>
-              Desktop Media
+              {meta.previewSubtitle}
             </span>
           </div>
         </div>
@@ -142,24 +132,35 @@ export default function WidgetsApp() {
           <span
             className={`text-[10px] uppercase tracking-wider ${surface.textMuted}`}
           >
-            GitHub Widget
+            {meta.previewSubtitle}
           </span>
           <span
             className={`text-xs font-mono mt-0.5 truncate ${surface.textPrimary}`}
           >
             {typeof total === 'number'
               ? `${total.toLocaleString()} contributions`
-              : 'Contribution Heatmap'}
+              : meta.previewTitle}
           </span>
         </div>
       )
     }
 
+    
+
     return (
       <div
-        className={`w-full h-full px-3 py-2.5 rounded-lg border flex items-center justify-center text-xs font-mono truncate ${previewBoxClass} ${surface.textSecondary}`}
+        className={`w-full h-full px-3 py-2.5 rounded-lg border flex flex-col justify-center ${previewBoxClass}`}
       >
-        {id.toUpperCase()}
+        <span
+          className={`text-[10px] uppercase tracking-wider ${surface.textMuted}`}
+        >
+          {meta.previewSubtitle}
+        </span>
+        <span
+          className={`text-sm font-mono font-semibold mt-0.5 truncate ${surface.textPrimary}`}
+        >
+          {meta.previewTitle}
+        </span>
       </div>
     )
   }
@@ -209,11 +210,7 @@ export default function WidgetsApp() {
         {/* Uniform Width & Height Cards with Natural Wrapping */}
         <div className="flex flex-row flex-wrap items-center justify-center gap-3 pb-2">
           {entries.map(([id, config]) => {
-            const meta: WidgetMeta = WIDGET_META[id] || {
-              name: id.toUpperCase(),
-              label: id.toUpperCase(),
-              defaultPos: { x: 1000, y: 200, xRatio: 0.75, yRatio: 0.3 },
-            }
+            const meta = getWidgetRegistryItem(id)
 
             return (
               <div
@@ -238,7 +235,7 @@ export default function WidgetsApp() {
               >
                 {/* Fixed-Height Uniform Preview Box */}
                 <div className="flex-1 min-h-0 w-full">
-                  {renderUniformPreview(id)}
+                  {renderUniformPreview(id, meta)}
                 </div>
 
                 {/* Bottom Controls Bar */}
