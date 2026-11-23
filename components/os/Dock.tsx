@@ -129,22 +129,34 @@ export default function Dock() {
     dispatch(openApp(appId))
   }
 
-  const dockBg = surface.dockBg
+  // Translucent glass fill + SVG-inspired multi-stop inner bevel shadows
+  const dockBg = isLight
+    ? 'rgba(255, 255, 255, 0.22)'
+    : 'rgba(255, 255, 255, 0.035)'
+
+  const dockInnerBevel = isLight
+    ? `inset 0 0 2px rgba(15, 23, 42, 0.28),
+       inset 0 0 6px rgba(255, 255, 255, 0.72),
+       inset 0 1.5px 12px rgba(255, 255, 255, 0.55)`
+    : `inset 0 0 2px rgba(255, 255, 255, 0.5),
+       inset 0 0 5px rgba(255, 255, 255, 0.3),
+       inset 0 0 10px rgba(255, 255, 255, 0.25)`
+
   const dockBorderColor = isLight
-    ? 'rgba(15, 23, 42, 0.14)'
-    : 'rgba(255, 255, 255, 0.12)'
+    ? 'rgba(255, 255, 255, 0.72)'
+    : 'rgba(255, 255, 255, 0.16)'
   const dividerColor = isLight
     ? 'rgba(15, 23, 42, 0.16)'
-    : 'rgba(255, 255, 255, 0.14)'
+    : 'rgba(255, 255, 255, 0.16)'
   const hoverBg = isLight
-    ? 'rgba(15, 23, 42, 0.08)'
-    : 'rgba(255, 255, 255, 0.12)'
+    ? 'rgba(255, 255, 255, 0.45)'
+    : 'rgba(255, 255, 255, 0.1)'
   const inactiveDotColor = isLight
-    ? 'rgba(15, 23, 42, 0.35)'
-    : 'rgba(255, 255, 255, 0.6)'
+    ? 'rgba(15, 23, 42, 0.38)'
+    : 'rgba(255, 255, 255, 0.62)'
   const collapsedBg = isLight
-    ? 'rgba(15, 23, 42, 0.35)'
-    : 'rgba(255, 255, 255, 0.32)'
+    ? 'rgba(255, 255, 255, 0.65)'
+    : 'rgba(255, 255, 255, 0.28)'
 
   return (
     <>
@@ -174,12 +186,14 @@ export default function Dock() {
           position: relative;
           display: flex;
           align-items: center;
-          backdrop-filter: blur(12px) saturate(1.8);
-          -webkit-backdrop-filter: blur(12px) saturate(1.8);
+          backdrop-filter: blur(8px) saturate(1.65);
+          -webkit-backdrop-filter: blur(8px) saturate(1.65);
           background: ${dockBg};
           border-top: 1px solid ${dockBorderColor};
-          box-shadow: 0 -10px 30px rgba(0, 0, 0, ${isLight ? '0.14' : '0.4'}),
-                      0 0 20px 2px var(--dock-glow);
+          box-shadow:
+            ${dockInnerBevel},
+            0 4px 12px rgba(0, 0, 0, ${isLight ? '0.14' : '0.35'}),
+            0 0 22px -2px var(--dock-glow);
           overflow: hidden;
           transition:
             width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
@@ -189,6 +203,17 @@ export default function Dock() {
             border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
             background 0.25s ease,
             box-shadow 0.25s ease;
+        }
+
+        /* Subtle glossy rim sheen matching the SVG inner highlight */
+        .os-dock::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, ${isLight ? '0.85' : '0.32'});
+          pointer-events: none;
+          z-index: 2;
         }
 
         /* Mobile View: Full Width Bottom Nav */
@@ -232,7 +257,13 @@ export default function Dock() {
           cursor: pointer;
         }
 
+        .os-dock.collapsed::before {
+          display: none;
+        }
+
         .os-dock-items {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: flex-start;
@@ -301,7 +332,7 @@ export default function Dock() {
             max-width: none;
             width: 5.25rem;
             height: 5.25rem;
-            border-radius: 0rem;
+            border-radius: 1rem;
           }
         }
 
@@ -347,7 +378,7 @@ export default function Dock() {
           }}
           className={`os-dock ${isCollapsed ? 'collapsed' : ''}`}
           style={{
-            ['--dock-glow' as string]: `rgba(${accentRgbClean}, 0.15)`,
+            ['--dock-glow' as string]: `rgba(${accentRgbClean}, 0.18)`,
             ['--dock-focus-bg' as string]: `rgba(${accentRgbClean}, 0.2)`,
             ['--dock-border' as string]: theme.rgb,
             ['--dock-indicator' as string]: theme.rgb,
