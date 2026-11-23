@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/lib/hooks";
-import { COLOR_PACKAGES } from "@/lib/themes/colorPackages";
+import { COLOR_PACKAGES, getSurfacePackage } from "@/lib/themes/colorPackages";
 import { IoMdPause, IoMdPlay } from "react-icons/io";
 import {
     TbPlayerSkipBackFilled,
@@ -48,8 +48,14 @@ function formatTime(seconds: number): string {
 }
 
 export default function MusicWidget() {
-    const { accent } = useAppSelector((state) => state.theme);
-    const theme = COLOR_PACKAGES[accent];
+    const { accent, mode, hydrated } = useAppSelector((state) => state.theme);
+    const activeAccent = hydrated ? accent : "blue";
+    const activeMode = hydrated ? mode : "dark";
+    const isLight = activeMode === "light";
+
+    const theme = COLOR_PACKAGES[activeAccent];
+    const surface = getSurfacePackage(activeMode);
+    const accentRgbClean = theme.rgb.replace(/[^\d,]/g, "");
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -78,7 +84,6 @@ export default function MusicWidget() {
 
     const loadFilesIntoPlaylist = useCallback(
         (files: File[], dirLabel: string) => {
-            // Revoke previous object URLs
             tracksRef.current.forEach((track) =>
                 URL.revokeObjectURL(track.url),
             );
@@ -124,7 +129,6 @@ export default function MusicWidget() {
         [],
     );
 
-    // Recursively collect files from a FileSystemDirectoryHandle
     const collectFilesFromHandle = async (
         dirHandle: FileSystemDirectoryHandle,
     ): Promise<File[]> => {
@@ -158,7 +162,6 @@ export default function MusicWidget() {
                 return;
             } catch (err: unknown) {
                 if (err instanceof Error && err.name === "AbortError") return;
-                // Fall through to input fallback on restricted/non-secure contexts
             }
         }
 
@@ -182,7 +185,6 @@ export default function MusicWidget() {
             ? tracks[currentIndex]
             : null;
 
-    // Sync audio source when currentTrack changes
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -203,7 +205,6 @@ export default function MusicWidget() {
         }
     }, [currentTrack]);
 
-    // Sync play/pause state with audio element
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio || !currentTrack) return;
@@ -261,7 +262,9 @@ export default function MusicWidget() {
         duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
     return (
-        <div className="p-4 w-[280px] sm:w-[320px] flex flex-col gap-3 cursor-grab active:cursor-grabbing">
+        <div
+            className={`p-4 w-[280px] sm:w-[320px] flex flex-col gap-3 cursor-grab active:cursor-grabbing ${surface.textPrimary}`}
+        >
             <audio
                 ref={audioRef}
                 onTimeUpdate={(e) =>
@@ -273,7 +276,6 @@ export default function MusicWidget() {
                 onEnded={handleNext}
             />
 
-            {/* Hidden directory picker input fallback */}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -290,20 +292,24 @@ export default function MusicWidget() {
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-inner shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-inner shrink-0 text-white"
                         style={{
-                            background: `linear-gradient(135deg, rgba(${theme.rgb}, 0.45), rgba(15, 23, 42, 0.85))`,
+                            background: `linear-gradient(135deg, rgba(${accentRgbClean}, 0.55), rgba(15, 23, 42, 0.85))`,
                         }}
                     >
                         {isPlaying ? <GiMusicalNotes /> : <SiApplemusic />}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-semibold truncate text-white">
+                        <span
+                            className={`text-xs font-semibold truncate ${surface.textPrimary}`}
+                        >
                             {currentTrack
                                 ? formatTrackTitle(currentTrack.name)
                                 : "No Track Loaded"}
                         </span>
-                        <span className="text-[11px] opacity-60 truncate">
+                        <span
+                            className={`text-[11px] truncate ${surface.textMuted}`}
+                        >
                             {folderName ? (
                                 <span className="flex items-center gap-1.5">
                                     <RiFolderShield2Fill className="shrink-0" />
@@ -324,7 +330,7 @@ export default function MusicWidget() {
                     onTouchStart={(e) => e.stopPropagation()}
                     onClick={handleChooseDirectory}
                     title="Choose audio directory"
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-medium text-white transition shrink-0 cursor-pointer"
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-medium transition shrink-0 cursor-pointer ${surface.subtleBg} ${surface.borderSubtle} ${surface.textPrimary} ${surface.cardHoverBg}`}
                 >
                     Folder
                 </button>
@@ -339,7 +345,9 @@ export default function MusicWidget() {
                 <div
                     onClick={handleSeek}
                     title="Seek"
-                    className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden cursor-pointer"
+                    className={`w-full h-1.5 rounded-full overflow-hidden cursor-pointer ${
+                        isLight ? "bg-slate-900/10" : "bg-white/10"
+                    }`}
                 >
                     <div
                         className="h-full rounded-full transition-[width] duration-150"
@@ -349,7 +357,9 @@ export default function MusicWidget() {
                         }}
                     />
                 </div>
-                <div className="flex justify-between text-[10px] font-mono opacity-60">
+                <div
+                    className={`flex justify-between text-[10px] font-mono ${surface.textMuted}`}
+                >
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(duration)}</span>
                 </div>
@@ -366,7 +376,7 @@ export default function MusicWidget() {
                     onClick={handlePrev}
                     disabled={tracks.length === 0}
                     title="Previous track"
-                    className="opacity-70 hover:opacity-100 disabled:opacity-30 transition text-sm cursor-pointer disabled:cursor-not-allowed"
+                    className={`${surface.textSecondary} hover:opacity-100 opacity-75 disabled:opacity-30 transition text-sm cursor-pointer disabled:cursor-not-allowed`}
                 >
                     <TbPlayerSkipBackFilled />
                 </button>
@@ -384,7 +394,7 @@ export default function MusicWidget() {
                     onClick={handleNext}
                     disabled={tracks.length === 0}
                     title="Next track"
-                    className="opacity-70 hover:opacity-100 disabled:opacity-30 transition text-sm cursor-pointer disabled:cursor-not-allowed"
+                    className={`${surface.textSecondary} hover:opacity-100 opacity-75 disabled:opacity-30 transition text-sm cursor-pointer disabled:cursor-not-allowed`}
                 >
                     <TbPlayerSkipForwardFilled />
                 </button>
@@ -394,13 +404,13 @@ export default function MusicWidget() {
             <div
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
-                className="max-h-36 overflow-y-auto flex flex-col gap-1 border-t border-white/10 pt-2 pr-0.5 cursor-default"
+                className={`max-h-36 overflow-y-auto flex flex-col gap-1 border-t pt-2 pr-0.5 cursor-default ${surface.borderSubtle}`}
             >
                 {tracks.length === 0 ? (
                     <button
                         type="button"
                         onClick={handleChooseDirectory}
-                        className="py-3 px-2 rounded-lg bg-white/5 hover:bg-white/10 border border-dashed border-white/15 text-[11px] opacity-75 hover:opacity-100 transition text-center cursor-pointer"
+                        className={`py-3 px-2 rounded-lg border border-dashed text-[11px] transition text-center cursor-pointer ${surface.subtleBg} ${surface.border} ${surface.textMuted} ${surface.cardHoverBg}`}
                     >
                         {statusMessage ||
                             'Click "Folder" to select a directory with audio files'}
@@ -418,8 +428,8 @@ export default function MusicWidget() {
                                 }}
                                 className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs transition cursor-pointer ${
                                     active
-                                        ? "bg-white/15 text-white font-medium"
-                                        : "hover:bg-white/10 text-white/75"
+                                        ? `${surface.inputBg} ${surface.textPrimary} font-medium`
+                                        : `${surface.cardHoverBg} ${surface.textSecondary}`
                                 }`}
                             >
                                 <span className="truncate flex items-center gap-1.5">
@@ -431,15 +441,19 @@ export default function MusicWidget() {
                                                 : undefined,
                                         }}
                                     >
-                                        {active && isPlaying
-                                            ? <IoMdPlay />
-                                            : `${idx + 1}.`}
+                                        {active && isPlaying ? (
+                                            <IoMdPlay />
+                                        ) : (
+                                            `${idx + 1}.`
+                                        )}
                                     </span>
                                     <span className="truncate">
                                         {formatTrackTitle(track.name)}
                                     </span>
                                 </span>
-                                <span className="text-[10px] font-mono opacity-50 shrink-0">
+                                <span
+                                    className={`text-[10px] font-mono shrink-0 ${surface.textMuted}`}
+                                >
                                     {track.sizeMB} MB
                                 </span>
                             </button>

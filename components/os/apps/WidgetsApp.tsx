@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { toggleWidget, focusWidget, moveWidget } from '@/lib/features/widgetsSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import { FaLayerGroup, FaUndo, FaPowerOff } from 'react-icons/fa'
 
 interface WidgetMeta {
@@ -34,7 +34,7 @@ export default function WidgetsApp() {
   const dispatch = useAppDispatch()
   const { widgets } = useAppSelector((state) => state.widgets)
   const { data: githubData } = useAppSelector((state) => state.github)
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -42,7 +42,11 @@ export default function WidgetsApp() {
   }, [])
 
   const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
   const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
   const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   const entries = Object.entries(widgets)
@@ -78,14 +82,26 @@ export default function WidgetsApp() {
     dispatch(focusWidget(id))
   }
 
+  const previewBoxClass = isLight
+    ? 'bg-slate-100/90 border-slate-200/90'
+    : 'bg-black/35 border-white/[0.06]'
+
+  const controlBtnClass = `${surface.subtleBg} ${surface.cardHoverBg} border ${surface.borderSubtle} ${surface.textSecondary}`
+
   const renderUniformPreview = (id: string) => {
     if (id === 'clock') {
       return (
-        <div className="w-full h-full px-3 py-2.5 rounded-lg bg-black/35 border border-white/[0.06] flex flex-col justify-center">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400">
+        <div
+          className={`w-full h-full px-3 py-2.5 rounded-lg border flex flex-col justify-center ${previewBoxClass}`}
+        >
+          <span
+            className={`text-[10px] uppercase tracking-wider ${surface.textMuted}`}
+          >
             Clock Widget
           </span>
-          <span className="text-sm font-mono font-semibold text-white mt-0.5 truncate">
+          <span
+            className={`text-sm font-mono font-semibold mt-0.5 truncate ${surface.textPrimary}`}
+          >
             Live Time &amp; Date
           </span>
         </div>
@@ -94,16 +110,24 @@ export default function WidgetsApp() {
 
     if (id === 'music') {
       return (
-        <div className="w-full h-full px-3 py-2.5 rounded-lg bg-black/35 border border-white/[0.06] flex items-center gap-2.5">
+        <div
+          className={`w-full h-full px-3 py-2.5 rounded-lg border flex items-center gap-2.5 ${previewBoxClass}`}
+        >
           <span
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-black shrink-0"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
             style={{ backgroundColor: theme.rgb }}
           >
             ▶
           </span>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-medium text-white truncate">Audio Player</span>
-            <span className="text-[10px] text-slate-400 truncate">Desktop Media</span>
+            <span
+              className={`text-xs font-medium truncate ${surface.textPrimary}`}
+            >
+              Audio Player
+            </span>
+            <span className={`text-[10px] truncate ${surface.textMuted}`}>
+              Desktop Media
+            </span>
           </div>
         </div>
       )
@@ -112,11 +136,17 @@ export default function WidgetsApp() {
     if (id === 'git') {
       const total = githubData?.contributionCalendar?.totalContributions
       return (
-        <div className="w-full h-full px-3 py-2.5 rounded-lg bg-black/35 border border-white/[0.06] flex flex-col justify-center">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400">
+        <div
+          className={`w-full h-full px-3 py-2.5 rounded-lg border flex flex-col justify-center ${previewBoxClass}`}
+        >
+          <span
+            className={`text-[10px] uppercase tracking-wider ${surface.textMuted}`}
+          >
             GitHub Widget
           </span>
-          <span className="text-xs font-mono text-white mt-0.5 truncate">
+          <span
+            className={`text-xs font-mono mt-0.5 truncate ${surface.textPrimary}`}
+          >
             {typeof total === 'number'
               ? `${total.toLocaleString()} contributions`
               : 'Contribution Heatmap'}
@@ -126,22 +156,30 @@ export default function WidgetsApp() {
     }
 
     return (
-      <div className="w-full h-full px-3 py-2.5 rounded-lg bg-black/35 border border-white/[0.06] flex items-center justify-center text-xs font-mono text-slate-300 truncate">
+      <div
+        className={`w-full h-full px-3 py-2.5 rounded-lg border flex items-center justify-center text-xs font-mono truncate ${previewBoxClass} ${surface.textSecondary}`}
+      >
         {id.toUpperCase()}
       </div>
     )
   }
 
   return (
-    <div className="relative h-full overflow-y-auto overflow-x-hidden bg-[#090c12] text-slate-200 select-none">
+    <div
+      className={`relative h-full overflow-y-auto overflow-x-hidden select-none transition-colors duration-200 ${surface.appBg} ${surface.textSecondary}`}
+    >
       <div className="relative max-w-6xl mx-auto px-4 py-5 sm:px-7 sm:py-6 flex flex-col gap-5">
         {/* Header & Bulk Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+        <div
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${surface.borderSubtle}`}
+        >
           <div>
-            <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-white mt-1">
+            <h2
+              className={`text-lg sm:text-xl font-semibold tracking-tight mt-1 ${surface.textPrimary}`}
+            >
               Desktop Widget
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className={`text-xs mt-0.5 ${surface.textMuted}`}>
               {activeCount} of {entries.length} floating widgets visible on your desktop.
             </p>
           </div>
@@ -152,7 +190,7 @@ export default function WidgetsApp() {
                 type="button"
                 onClick={() => setAllWidgets(true)}
                 disabled={activeCount === entries.length}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-slate-200 transition disabled:opacity-40 cursor-pointer"
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition disabled:opacity-40 cursor-pointer ${controlBtnClass}`}
               >
                 Show All
               </button>
@@ -160,7 +198,7 @@ export default function WidgetsApp() {
                 type="button"
                 onClick={() => setAllWidgets(false)}
                 disabled={activeCount === 0}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-slate-200 transition disabled:opacity-40 cursor-pointer"
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition disabled:opacity-40 cursor-pointer ${controlBtnClass}`}
               >
                 Hide All
               </button>
@@ -185,12 +223,16 @@ export default function WidgetsApp() {
                 style={
                   config.isOpen
                     ? {
-                        backgroundColor: `rgba(${accentRgbClean}, 0.08)`,
-                        borderColor: `rgba(${accentRgbClean}, 0.42)`,
+                        backgroundColor: `rgba(${accentRgbClean}, ${isLight ? '0.12' : '0.08'})`,
+                        borderColor: `rgba(${accentRgbClean}, 0.45)`,
                       }
                     : {
-                        backgroundColor: 'rgba(255, 255, 255, 0.025)',
-                        borderColor: 'rgba(255, 255, 255, 0.07)',
+                        backgroundColor: isLight
+                          ? '#ffffff'
+                          : 'rgba(255, 255, 255, 0.025)',
+                        borderColor: isLight
+                          ? 'rgba(15, 23, 42, 0.12)'
+                          : 'rgba(255, 255, 255, 0.07)',
                       }
                 }
               >
@@ -200,13 +242,15 @@ export default function WidgetsApp() {
                 </div>
 
                 {/* Bottom Controls Bar */}
-                <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-white/[0.07] shrink-0">
+                <div
+                  className={`flex items-center justify-between gap-1.5 pt-2 border-t shrink-0 ${surface.borderSubtle}`}
+                >
                   <button
                     type="button"
                     disabled={!config.isOpen}
                     onClick={(e) => handleBringToFront(e, id)}
                     title="Bring widget to front"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] text-slate-200 transition disabled:opacity-35 disabled:pointer-events-none cursor-pointer"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition disabled:opacity-35 disabled:pointer-events-none cursor-pointer ${controlBtnClass}`}
                   >
                     <FaLayerGroup className="w-2.5 h-2.5" style={{ color: theme.rgb }} />
                     <span>Front</span>
@@ -216,7 +260,7 @@ export default function WidgetsApp() {
                     type="button"
                     onClick={(e) => handleResetPosition(e, id, meta)}
                     title="Reset widget position"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 transition cursor-pointer"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition cursor-pointer ${controlBtnClass}`}
                   >
                     <FaUndo className="w-2.5 h-2.5 opacity-75" />
                     <span>Reset</span>
@@ -229,7 +273,7 @@ export default function WidgetsApp() {
                       dispatch(toggleWidget(id))
                     }}
                     title={config.isOpen ? 'Hide widget' : 'Show widget'}
-                    className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 transition cursor-pointer"
+                    className={`inline-flex items-center justify-center w-6 h-6 rounded-lg transition cursor-pointer ${controlBtnClass}`}
                   >
                     <FaPowerOff className="w-2.5 h-2.5" />
                   </button>

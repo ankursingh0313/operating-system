@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { moveWidget, focusWidget } from '@/lib/features/widgetsSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 
 interface DraggableWidgetProps {
   id: string
@@ -13,8 +13,15 @@ interface DraggableWidgetProps {
 export default function DraggableWidget({ id, children }: DraggableWidgetProps) {
   const dispatch = useAppDispatch()
   const [isMounted, setIsMounted] = useState(false)
-  const { accent } = useAppSelector((state) => state.theme)
-  const theme = COLOR_PACKAGES[accent]
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
+
+  const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
+  const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
+  const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   useEffect(() => {
     setIsMounted(true)
@@ -22,7 +29,7 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
 
   const widgetState = useAppSelector((state) => state.widgets?.widgets?.[id])
   const widgetRef = useRef<HTMLDivElement>(null)
-  
+
   const isDragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })
 
@@ -33,17 +40,14 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
     const maxX = Math.max(1, window.innerWidth - rect.width - 20)
     const maxY = Math.max(1, window.innerHeight - rect.height - 20)
 
-    // Fallback if ratios aren't set yet
     const xRatio = widgetState.xRatio !== undefined ? widgetState.xRatio : 0.75
     const yRatio = widgetState.yRatio !== undefined ? widgetState.yRatio : 0.1
 
     const newX = Math.round(xRatio * maxX)
     const newY = Math.round(yRatio * maxY)
 
-    // Apply transform instantly
     widgetRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0px)`
 
-    // Update Redux x and y so they match the resized screen perfectly on reload
     if (newX !== widgetState.x || newY !== widgetState.y) {
       dispatch(moveWidget({ id, x: newX, y: newY, xRatio, yRatio }))
     }
@@ -52,9 +56,9 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
   useEffect(() => {
     updatePositionOnResize()
     window.addEventListener('resize', updatePositionOnResize)
-    return () => window.removeEventListener('resize', updatePositionResizeCleanUp => {
+    return () => {
       window.removeEventListener('resize', updatePositionOnResize)
-    })
+    }
   }, [updatePositionOnResize])
 
   if (!isMounted || !widgetState || !widgetState.isOpen) return null
@@ -65,7 +69,7 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
 
     if (!widgetRef.current) return
     const rect = widgetRef.current.getBoundingClientRect()
-    
+
     dragOffset.current = {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
@@ -79,9 +83,9 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
       if (animationFrameId) cancelAnimationFrame(animationFrameId)
 
       animationFrameId = requestAnimationFrame(() => {
-        const rect = widgetRef.current!.getBoundingClientRect()
-        const maxX = Math.max(0, window.innerWidth - rect.width - 20)
-        const maxY = Math.max(0, window.innerHeight - rect.height - 20)
+        const currentRect = widgetRef.current!.getBoundingClientRect()
+        const maxX = Math.max(0, window.innerWidth - currentRect.width - 20)
+        const maxY = Math.max(0, window.innerHeight - currentRect.height - 20)
 
         const newX = Math.max(10, Math.min(moveEvent.clientX - dragOffset.current.x, maxX))
         const newY = Math.max(10, Math.min(moveEvent.clientY - dragOffset.current.y, maxY))
@@ -95,17 +99,16 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
       isDragging.current = false
       if (animationFrameId) cancelAnimationFrame(animationFrameId)
 
-      const rect = widgetRef.current.getBoundingClientRect()
-      const maxX = Math.max(1, window.innerWidth - rect.width - 20)
-      const maxY = Math.max(1, window.innerHeight - rect.height - 20)
+      const finalRect = widgetRef.current.getBoundingClientRect()
+      const maxX = Math.max(1, window.innerWidth - finalRect.width - 20)
+      const maxY = Math.max(1, window.innerHeight - finalRect.height - 20)
 
-      const finalX = Math.max(10, Math.min(rect.left, maxX))
-      const finalY = Math.max(10, Math.min(rect.top, maxY))
+      const finalX = Math.max(10, Math.min(finalRect.left, maxX))
+      const finalY = Math.max(10, Math.min(finalRect.top, maxY))
 
       const xRatio = finalX / maxX
       const yRatio = finalY / maxY
 
-      // Save updated absolute pixels and ratios to Redux on drop
       dispatch(
         moveWidget({
           id,
@@ -194,6 +197,14 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
     window.addEventListener('touchcancel', handleTouchEnd)
   }
 
+  const cardBg = isLight
+    ? 'rgba(255, 255, 255, 0.84)'
+    : 'rgba(255, 255, 255, 0.08)'
+  const cardBorder = isLight
+    ? 'rgba(15, 23, 42, 0.14)'
+    : 'rgba(255, 255, 255, 0.12)'
+  const cardText = isLight ? '#0f172a' : '#ffffff'
+
   return (
     <div
       ref={widgetRef}
@@ -207,23 +218,23 @@ export default function DraggableWidget({ id, children }: DraggableWidgetProps) 
         transform: `translate3d(${widgetState.x || 0}px, ${widgetState.y || 0}px, 0px)`,
         cursor: 'grab',
       }}
-      className="widget-card select-none active:cursor-grabbing absolute touch-none"
+      className={`widget-card select-none active:cursor-grabbing touch-none ${surface.textPrimary}`}
     >
       <style>{`
         .widget-card {
-          background: rgba(255, 255, 255, 0.08);
+          background: ${cardBg};
           backdrop-filter: blur(16px) saturate(140%);
           -webkit-backdrop-filter: blur(16px) saturate(140%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          border: 1px solid ${cardBorder};
           border-radius: 1.5rem;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
-                      0 0 15px rgba(${theme.rgb}, 0.1);
-          color: #ffffff;
-          transition: box-shadow 0.2s ease;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, ${isLight ? '0.12' : '0.3'}),
+                      0 0 15px rgba(${accentRgbClean}, 0.14);
+          color: ${cardText};
+          transition: box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
         .widget-card:hover {
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4),
-                      0 0 20px rgba(${theme.rgb}, 0.2);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, ${isLight ? '0.18' : '0.4'}),
+                      0 0 20px rgba(${accentRgbClean}, 0.24);
         }
       `}</style>
       {children}

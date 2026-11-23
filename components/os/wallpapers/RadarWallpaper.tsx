@@ -1,9 +1,17 @@
 'use client'
 
 import React from 'react'
-import { ColorPackage } from '@/lib/themes/colorPackages'
+import { useAppSelector } from '@/lib/hooks'
+import { ColorPackage, getSurfacePackage } from '@/lib/themes/colorPackages'
 
 export default function RadarWallpaper({ theme }: { theme: ColorPackage }) {
+  const { mode, hydrated } = useAppSelector((state) => state.theme)
+  const activeMode = hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+  const surface = getSurfacePackage(activeMode)
+
+  const baseColor = isLight ? surface.rawBg : '#09090b'
+
   return (
     <>
       <style>{`
@@ -12,7 +20,7 @@ export default function RadarWallpaper({ theme }: { theme: ColorPackage }) {
           inset: 0;
           width: 100%;
           height: 100%;
-          background-color: #09090b;
+          background-color: ${baseColor};
           overflow: hidden;
           z-index: 0;
           pointer-events: none;
@@ -24,7 +32,7 @@ export default function RadarWallpaper({ theme }: { theme: ColorPackage }) {
           background-image: linear-gradient(${theme.rawPrimary} 0.1em, transparent 0.1em),
                             linear-gradient(90deg, ${theme.rawPrimary} 0.1em, transparent 0.1em);
           background-size: 3em 3em;
-          opacity: 0.25; 
+          opacity: ${isLight ? '0.35' : '0.25'};
           z-index: 0;
         }
         .radar-pattern::before {
@@ -34,7 +42,7 @@ export default function RadarWallpaper({ theme }: { theme: ColorPackage }) {
           width: 150vw; height: 150vh;
           transform: translate(-50%, -50%);
           background: repeating-radial-gradient(circle, transparent 0, transparent 2.9em, ${theme.rawPrimary} 3em);
-          opacity: 0.25;
+          opacity: ${isLight ? '0.35' : '0.25'};
           z-index: 1;
         }
         .radar-pattern::after {

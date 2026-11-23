@@ -1,14 +1,88 @@
-export type AccentColor = 
-  | 'blue' 
-  | 'red' 
-  | 'green' 
-  | 'purple' 
-  | 'pink' 
-  | 'orange' 
-  | 'cyan' 
-  | 'indigo' 
-  | 'slate' 
+export type AccentColor =
+  | 'blue'
+  | 'red'
+  | 'green'
+  | 'purple'
+  | 'pink'
+  | 'orange'
+  | 'cyan'
+  | 'indigo'
+  | 'slate'
   | 'rose';
+
+export type ThemeMode = 'dark' | 'light';
+
+export interface SurfacePackage {
+  mode: ThemeMode;
+  // App / Workspace Surfaces
+  appBg: string;
+  cardBg: string;
+  cardHoverBg: string;
+  subtleBg: string;
+  inputBg: string;
+  // Window & Dock Surfaces
+  windowBg: string;
+  windowHeaderBg: string;
+  dockBg: string;
+  // Text & Borders
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  border: string;
+  borderSubtle: string;
+  // Raw CSS Values for inline styles / canvas
+  rawBg: string;
+  rawSurface: string;
+  rawText: string;
+  rawBorder: string;
+}
+
+export const SURFACE_PACKAGES: Record<ThemeMode, SurfacePackage> = {
+  dark: {
+    mode: 'dark',
+    appBg: 'bg-[#090c12]',
+    cardBg: 'bg-[#161b22]',
+    cardHoverBg: 'hover:bg-[#1f242c]',
+    subtleBg: 'bg-white/[0.04]',
+    inputBg: 'bg-white/[0.06]',
+    windowBg: 'bg-gray-900/90',
+    windowHeaderBg: 'bg-white/[0.04]',
+    dockBg: 'rgba(30, 30, 46, 0.75)',
+    textPrimary: 'text-slate-100',
+    textSecondary: 'text-slate-300',
+    textMuted: 'text-slate-400',
+    border: 'border-white/15',
+    borderSubtle: 'border-white/[0.08]',
+    rawBg: '#090c12',
+    rawSurface: '#161b22',
+    rawText: '#f1f5f9',
+    rawBorder: 'rgba(255, 255, 255, 0.14)',
+  },
+  light: {
+    mode: 'light',
+    appBg: 'bg-slate-100',
+    cardBg: 'bg-white',
+    cardHoverBg: 'hover:bg-slate-50',
+    subtleBg: 'bg-slate-900/[0.04]',
+    inputBg: 'bg-slate-900/[0.06]',
+    windowBg: 'bg-white/90',
+    windowHeaderBg: 'bg-slate-100/90',
+    dockBg: 'rgba(255, 255, 255, 0.78)',
+    textPrimary: 'text-slate-900',
+    textSecondary: 'text-slate-700',
+    textMuted: 'text-slate-500',
+    border: 'border-slate-300/80',
+    borderSubtle: 'border-slate-200',
+    rawBg: '#f1f5f9',
+    rawSurface: '#ffffff',
+    rawText: '#0f172a',
+    rawBorder: 'rgba(15, 23, 42, 0.14)',
+  },
+};
+
+export function getSurfacePackage(mode?: ThemeMode | null): SurfacePackage {
+  return SURFACE_PACKAGES[mode === 'light' ? 'light' : 'dark'];
+}
 
 export interface ColorPackage {
   name: string;
@@ -23,7 +97,7 @@ export interface ColorPackage {
   rawPrimary: string;
   rawSecondary: string;
   rawGlow: string;
-  rgb: string; // 👈 Actual RGB representation (e.g. "rgb(239, 68, 68)")
+  rgb: string; // Actual RGB representation (e.g. "rgb(239, 68, 68)")
 }
 
 export const COLOR_PACKAGES: Record<AccentColor, ColorPackage> = {

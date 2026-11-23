@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { openApp } from '@/lib/features/dockSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import {
   FaGithub,
   FaEnvelope,
@@ -147,7 +147,7 @@ const CATEGORIES: ProjectCategory[] = ['All', 'Full-Stack', 'Real-Time', 'Tools 
 
 export default function ProfileApp() {
   const dispatch = useAppDispatch()
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
   const [activeCategory, setActiveCategory] = useState<ProjectCategory>('All')
 
@@ -155,7 +155,12 @@ export default function ProfileApp() {
     setIsMounted(true)
   }, [])
 
-  const theme = COLOR_PACKAGES[isMounted && hydrated ? accent : 'blue']
+  const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
+  const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
   const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   const filteredProjects =
@@ -163,10 +168,22 @@ export default function ProfileApp() {
       ? PROJECTS
       : PROJECTS.filter((p) => p.category === activeCategory)
 
+  const badgeTextColor = isLight ? surface.textPrimary : '#ffffff'
+
   return (
-    <div className="relative h-full overflow-y-auto overflow-x-hidden bg-[#080b11] text-slate-200 selection:bg-white/15">
+    <div
+      className={`relative h-full overflow-y-auto overflow-x-hidden transition-colors duration-200 ${surface.appBg} ${surface.textSecondary} ${
+        isLight ? 'selection:bg-slate-900/10' : 'selection:bg-white/15'
+      }`}
+    >
       {/* Hero Cover Section with Cutout Portrait */}
-      <section className="relative overflow-hidden border-b border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-transparent">
+      <section
+        className={`relative overflow-hidden border-b ${surface.borderSubtle} ${
+          isLight
+            ? 'bg-gradient-to-b from-white/80 to-transparent'
+            : 'bg-gradient-to-b from-white/[0.03] to-transparent'
+        }`}
+      >
         {/* Ambient Accent Glow Behind Cutout */}
         <div
           className="pointer-events-none absolute -top-20 right-4 sm:right-12 w-64 h-64 sm:w-80 sm:h-80 rounded-full blur-[110px] opacity-30 transition-colors duration-300"
@@ -179,10 +196,13 @@ export default function ProfileApp() {
 
         {/* Subtle Architectural Grid Overlay */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          className={`pointer-events-none absolute inset-0 ${
+            isLight ? 'opacity-[0.05]' : 'opacity-[0.04]'
+          }`}
           style={{
-            backgroundImage:
-              'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+            backgroundImage: isLight
+              ? 'linear-gradient(to right, #0f172a 1px, transparent 1px), linear-gradient(to bottom, #0f172a 1px, transparent 1px)'
+              : 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
             backgroundSize: '32px 32px',
           }}
         />
@@ -195,9 +215,9 @@ export default function ProfileApp() {
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border"
                   style={{
-                    backgroundColor: `rgba(${accentRgbClean}, 0.14)`,
+                    backgroundColor: `rgba(${accentRgbClean}, ${isLight ? '0.16' : '0.14'})`,
                     borderColor: `rgba(${accentRgbClean}, 0.45)`,
-                    color: '#ffffff',
+                    color: isLight ? '#0f172a' : '#ffffff',
                   }}
                 >
                   <span
@@ -207,14 +227,18 @@ export default function ProfileApp() {
                   Open to Full-Stack Roles
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] text-slate-400 bg-white/[0.04] border border-white/[0.08]">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] border ${surface.textMuted} ${surface.subtleBg} ${surface.borderSubtle}`}
+                >
                   <FaMapMarkerAlt className="w-2.5 h-2.5 opacity-75" />
                   India • Remote / On-site
                 </span>
               </div>
 
               <div>
-                <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">
+                <h1
+                  className={`text-2xl sm:text-4xl font-bold tracking-tight ${surface.textPrimary}`}
+                >
                   Ankur
                 </h1>
                 <p
@@ -223,7 +247,9 @@ export default function ProfileApp() {
                 >
                   Full-Stack Web &amp; Mobile Application Developer
                 </p>
-                <p className="text-xs sm:text-sm text-slate-400 mt-2.5 leading-relaxed max-w-xl">
+                <p
+                  className={`text-xs sm:text-sm mt-2.5 leading-relaxed max-w-xl ${surface.textMuted}`}
+                >
                   Building real-time web systems, cross-platform mobile apps, and
                   interactive interfaces with React, Next.js, Node.js, WebRTC, and
                   PostgreSQL.
@@ -248,7 +274,7 @@ export default function ProfileApp() {
                 <button
                   type="button"
                   onClick={() => dispatch(openApp('github'))}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-200 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] transition cursor-pointer"
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition cursor-pointer ${surface.textPrimary} ${surface.subtleBg} ${surface.cardHoverBg} ${surface.border}`}
                 >
                   <FaGithub className="w-4 h-4" />
                   <span>GitHub Stats</span>
@@ -256,7 +282,7 @@ export default function ProfileApp() {
 
                 <a
                   href="#projects-section"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition"
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition ${surface.textMuted} hover:opacity-100`}
                 >
                   <span>Explore Work</span>
                   <span aria-hidden="true">↓</span>
@@ -265,21 +291,33 @@ export default function ProfileApp() {
 
               {/* Quick Highlights Bar */}
               <div className="grid grid-cols-3 gap-2.5 pt-2 max-w-md">
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
-                  <div className="text-sm sm:text-base font-bold text-white">6+</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-400">
+                <div
+                  className={`p-2.5 rounded-xl border ${surface.subtleBg} ${surface.borderSubtle}`}
+                >
+                  <div className={`text-sm sm:text-base font-bold ${surface.textPrimary}`}>
+                    6+
+                  </div>
+                  <div className={`text-[10px] sm:text-[11px] ${surface.textMuted}`}>
                     Shipped Systems
                   </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
-                  <div className="text-sm sm:text-base font-bold text-white">MERN + SQL</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-400">
+                <div
+                  className={`p-2.5 rounded-xl border ${surface.subtleBg} ${surface.borderSubtle}`}
+                >
+                  <div className={`text-sm sm:text-base font-bold ${surface.textPrimary}`}>
+                    MERN + SQL
+                  </div>
+                  <div className={`text-[10px] sm:text-[11px] ${surface.textMuted}`}>
                     Full-Stack Core
                   </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
-                  <div className="text-sm sm:text-base font-bold text-white">WebRTC</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-400">
+                <div
+                  className={`p-2.5 rounded-xl border ${surface.subtleBg} ${surface.borderSubtle}`}
+                >
+                  <div className={`text-sm sm:text-base font-bold ${surface.textPrimary}`}>
+                    WebRTC
+                  </div>
+                  <div className={`text-[10px] sm:text-[11px] ${surface.textMuted}`}>
                     Real-Time Media
                   </div>
                 </div>
@@ -290,7 +328,7 @@ export default function ProfileApp() {
             <div className="md:col-span-5 relative flex justify-center md:justify-end self-end">
               {/* Soft Ring Backdrop behind cutout */}
               <div
-                className="pointer-events-none absolute bottom-4 w-52 h-52 sm:w-64 sm:h-64 rounded-full border border-white/10"
+                className={`pointer-events-none absolute bottom-4 w-52 h-52 sm:w-64 sm:h-64 rounded-full border ${surface.borderSubtle}`}
                 style={{
                   background: `radial-gradient(circle, rgba(${accentRgbClean}, 0.22) 0%, transparent 70%)`,
                 }}
@@ -303,7 +341,11 @@ export default function ProfileApp() {
                   fill
                   priority
                   sizes="(max-width: 640px) 224px, (max-width: 768px) 256px, 288px"
-                  className="object-contain object-bottom drop-shadow-[0_14px_28px_rgba(0,0,0,0.65)]"
+                  className={`object-contain object-bottom ${
+                    isLight
+                      ? 'drop-shadow-[0_14px_24px_rgba(15,23,42,0.22)]'
+                      : 'drop-shadow-[0_14px_28px_rgba(0,0,0,0.65)]'
+                  }`}
                 />
               </div>
             </div>
@@ -317,11 +359,15 @@ export default function ProfileApp() {
         <section id="projects-section" className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-400 font-medium">
+              <div
+                className={`inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] font-medium ${surface.textMuted}`}
+              >
                 <FaLayerGroup className="w-3 h-3" style={{ color: theme.rgb }} />
                 <span>Selected Engineering Work</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-semibold text-white mt-0.5">
+              <h2
+                className={`text-lg sm:text-xl font-semibold mt-0.5 ${surface.textPrimary}`}
+              >
                 Featured Projects
               </h2>
             </div>
@@ -335,19 +381,19 @@ export default function ProfileApp() {
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer shrink-0"
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer shrink-0 ${
+                      active
+                        ? ''
+                        : `${surface.subtleBg} ${surface.borderSubtle} ${surface.textMuted}`
+                    }`}
                     style={
                       active
                         ? {
                             backgroundColor: `rgba(${accentRgbClean}, 0.18)`,
                             borderColor: theme.rgb,
-                            color: '#ffffff',
+                            color: badgeTextColor,
                           }
-                        : {
-                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                            borderColor: 'rgba(255, 255, 255, 0.08)',
-                            color: '#94a3b8',
-                          }
+                        : undefined
                     }
                   >
                     {category}
@@ -362,13 +408,17 @@ export default function ProfileApp() {
             {filteredProjects.map((project) => (
               <article
                 key={project.id}
-                className="group relative rounded-2xl bg-white/[0.025] hover:bg-white/[0.045] border border-white/[0.08] hover:border-white/[0.16] p-4 sm:p-5 flex flex-col justify-between gap-4 transition"
+                className={`group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between gap-4 transition ${
+                  isLight
+                    ? 'bg-white/90 hover:bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                    : 'bg-white/[0.025] hover:bg-white/[0.045] border-white/[0.08] hover:border-white/[0.16]'
+                }`}
               >
                 <div className="flex flex-col gap-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-semibold text-white">
+                        <h3 className={`text-base font-semibold ${surface.textPrimary}`}>
                           {project.title}
                         </h3>
                         {project.featured && (
@@ -376,14 +426,14 @@ export default function ProfileApp() {
                             className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                             style={{
                               backgroundColor: `rgba(${accentRgbClean}, 0.18)`,
-                              color: '#ffffff',
+                              color: badgeTextColor,
                             }}
                           >
                             Featured
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className={`text-xs mt-0.5 ${surface.textMuted}`}>
                         {project.tagline}
                       </p>
                     </div>
@@ -395,7 +445,7 @@ export default function ProfileApp() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Source Code"
-                          className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center text-slate-300 hover:text-white transition"
+                          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition ${surface.subtleBg} ${surface.cardHoverBg} ${surface.borderSubtle} ${surface.textSecondary}`}
                         >
                           <FaGithub className="w-3.5 h-3.5" />
                         </a>
@@ -406,7 +456,7 @@ export default function ProfileApp() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Live Demo"
-                          className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center text-slate-300 hover:text-white transition"
+                          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition ${surface.subtleBg} ${surface.cardHoverBg} ${surface.borderSubtle} ${surface.textSecondary}`}
                         >
                           <FaExternalLinkAlt className="w-3 h-3" />
                         </a>
@@ -414,7 +464,7 @@ export default function ProfileApp() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300/90 leading-relaxed">
+                  <p className={`text-xs leading-relaxed ${surface.textSecondary}`}>
                     {project.description}
                   </p>
 
@@ -422,7 +472,7 @@ export default function ProfileApp() {
                     {project.highlights.map((item) => (
                       <li
                         key={item}
-                        className="flex items-start gap-2 text-[11px] text-slate-400"
+                        className={`flex items-start gap-2 text-[11px] ${surface.textMuted}`}
                       >
                         <FaCheckCircle
                           className="w-3 h-3 mt-0.5 shrink-0 opacity-80"
@@ -435,11 +485,13 @@ export default function ProfileApp() {
                 </div>
 
                 {/* Tech Stack Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/[0.06]">
+                <div
+                  className={`flex flex-wrap gap-1.5 pt-2 border-t ${surface.borderSubtle}`}
+                >
                   {project.stack.map((tech) => (
                     <span
                       key={tech}
-                      className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.07] text-[10px] sm:text-[11px] text-slate-300 font-mono"
+                      className={`px-2 py-0.5 rounded-md border text-[10px] sm:text-[11px] font-mono ${surface.subtleBg} ${surface.borderSubtle} ${surface.textSecondary}`}
                     >
                       {tech}
                     </span>
@@ -453,11 +505,15 @@ export default function ProfileApp() {
         {/* Technical Stack Section */}
         <section className="flex flex-col gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-400 font-medium">
+            <div
+              className={`inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] font-medium ${surface.textMuted}`}
+            >
               <FaTerminal className="w-3 h-3" style={{ color: theme.rgb }} />
               <span>Core Capabilities</span>
             </div>
-            <h2 className="text-lg sm:text-xl font-semibold text-white mt-0.5">
+            <h2
+              className={`text-lg sm:text-xl font-semibold mt-0.5 ${surface.textPrimary}`}
+            >
               Technical Stack
             </h2>
           </div>
@@ -466,9 +522,15 @@ export default function ProfileApp() {
             {SKILL_GROUPS.map((group) => (
               <div
                 key={group.title}
-                className="rounded-2xl bg-white/[0.025] border border-white/[0.08] p-4 flex flex-col gap-3"
+                className={`rounded-2xl border p-4 flex flex-col gap-3 ${
+                  isLight
+                    ? 'bg-white/90 border-slate-200 shadow-sm'
+                    : 'bg-white/[0.025] border-white/[0.08]'
+                }`}
               >
-                <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                <div
+                  className={`flex items-center gap-2 text-xs font-semibold ${surface.textPrimary}`}
+                >
                   <FaCode className="w-3.5 h-3.5" style={{ color: theme.rgb }} />
                   <span>{group.title}</span>
                 </div>
@@ -476,7 +538,7 @@ export default function ProfileApp() {
                   {group.items.map((skill) => (
                     <span
                       key={skill}
-                      className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.07] text-[11px] text-slate-300"
+                      className={`px-2.5 py-1 rounded-lg border text-[11px] ${surface.subtleBg} ${surface.borderSubtle} ${surface.textSecondary}`}
                     >
                       {skill}
                     </span>
@@ -488,12 +550,18 @@ export default function ProfileApp() {
         </section>
 
         {/* Bottom CTA Strip */}
-        <section className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section
+          className={`rounded-2xl border p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+            isLight
+              ? 'bg-white/90 border-slate-200 shadow-sm'
+              : 'bg-white/[0.03] border-white/[0.08]'
+          }`}
+        >
           <div>
-            <h3 className="text-base font-semibold text-white">
+            <h3 className={`text-base font-semibold ${surface.textPrimary}`}>
               Interested in working together?
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className={`text-xs mt-0.5 ${surface.textMuted}`}>
               Send a message directly through the DossierOS Email Client.
             </p>
           </div>

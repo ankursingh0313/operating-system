@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { openApp, closeApp, minimizeApp, toggleMaximizeApp } from '@/lib/features/dockSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { setMode, toggleMode } from '@/lib/features/themeSlice'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 
 interface TerminalLine {
   id: string
@@ -15,11 +16,12 @@ interface TerminalLine {
 const SUDO_HELP_TEXT = `usage: sudo [-h | --help] [-h <subcommand>] <subcommand> [args]
 
 Privileged DossierOS commands:
-  open <app>       Open an app window (profile, email, github, available, apps)
-  close <app>      Close an open app window (or 'all' to close all)
-  maximize [app]   Toggle fullscreen mode for [app] or currently focused app
-  neofetch         Display DossierOS system & hardware summary
-  theme            Show current accent theme status
+  open <app>           Open an app window (profile, email, github, available, apps, appearance, widgets)
+  close <app>          Close an open app window (or 'all' to close all)
+  maximize [app]       Toggle fullscreen mode for [app] or currently focused app
+  mode <dark|light>    Switch global OS theme mode (or 'toggle')
+  neofetch             Display DossierOS system & hardware summary
+  theme                Show current accent & mode theme status
 
 Help options:
   sudo -h, sudo --help, sudo -help       Show this help message
@@ -28,15 +30,17 @@ Help options:
 const SUBCOMMAND_HELP: Record<string, string> = {
   open: `sudo open <app>
   Launches a DossierOS application window.
-  Available apps: profile, email, github, available, apps`,
+  Available apps: profile, email, github, available, apps, appearance, widgets`,
   close: `sudo close <app | all>
   Closes a running application window or 'all' open windows.`,
   maximize: `sudo maximize [app]
   Toggles maximized/fullscreen state for the target app or focused window.`,
+  mode: `sudo mode <dark | light | toggle>
+  Switches the global DossierOS surface theme between dark and light mode.`,
   neofetch: `sudo neofetch
-  Prints DossierOS environment, theme accent, and developer profile info.`,
+  Prints DossierOS environment, theme accent/mode, and developer profile info.`,
   theme: `sudo theme
-  Displays the currently active theme accent package and hydration state.`,
+  Displays the currently active theme accent package, surface mode, and RGB value.`,
 }
 
 const GENERAL_HELP_TEXT = `DossierOS Shell — Available Commands:
@@ -45,7 +49,7 @@ const GENERAL_HELP_TEXT = `DossierOS Shell — Available Commands:
   about              About Ankur & full-stack focus
   projects           List featured DossierOS projects
   skills             Show core technical stack
-  open <app>         Open an app (profile, email, github, available, apps)
+  open <app>         Open an app (profile, email, github, available, apps, appearance, widgets)
   whoami             Print current user
   date               Print current date & time
   echo <text>        Print text to terminal
@@ -53,11 +57,11 @@ const GENERAL_HELP_TEXT = `DossierOS Shell — Available Commands:
 
 Tip: Use ↑ / ↓ arrow keys to cycle command history.`
 
-const VALID_APPS = ['profile', 'email', 'github', 'available', 'apps']
+const VALID_APPS = ['profile', 'email', 'github', 'available', 'apps', 'appearance', 'widgets']
 
 export default function TerminalApp() {
   const dispatch = useAppDispatch()
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const { focusedApp } = useAppSelector((state) => state.dock)
 
   const [isMounted, setIsMounted] = useState(false)
@@ -70,7 +74,11 @@ export default function TerminalApp() {
   }, [])
 
   const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
   const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
   const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   const [lines, setLines] = useState<TerminalLine[]>([
@@ -110,7 +118,6 @@ export default function TerminalApp() {
 
     const first = args[0].toLowerCase()
 
-    // `sudo -h`, `sudo --help`, `sudo -help`
     if (first === '-h' || first === '--help' || first === '-help') {
       const targetSub = args[1]?.toLowerCase()
       if (targetSub) {
@@ -130,8 +137,11 @@ export default function TerminalApp() {
       return
     }
 
-    // `sudo <subcommand> -h|--help|-help`
-    if (args[1]?.toLowerCase() === '-h' || args[1]?.toLowerCase() === '--help' || args[1]?.toLowerCase() === '-help') {
+    if (
+      args[1]?.toLowerCase() === '-h' ||
+      args[1]?.toLowerCase() === '--help' ||
+      args[1]?.toLowerCase() === '-help'
+    ) {
       if (SUBCOMMAND_HELP[first]) {
         appendLines([{ type: 'output', content: SUBCOMMAND_HELP[first] }])
       } else {
@@ -193,10 +203,36 @@ export default function TerminalApp() {
       }
 
       case 'maximize': {
-        const targetApp = (args[1]?.toLowerCase() || focusedApp || 'terminal')
+        const targetApp = args[1]?.toLowerCase() || focusedApp || 'terminal'
         dispatch(toggleMaximizeApp(targetApp))
         appendLines([
           { type: 'success', content: `[sudo] Toggled maximize on '${targetApp}'.` },
+        ])
+        break
+      }
+
+      case 'mode': {
+        const targetMode = args[1]?.toLowerCase()
+        if (targetMode === 'dark' || targetMode === 'light') {
+          dispatch(setMode(targetMode))
+          appendLines([
+            { type: 'success', content: `[sudo] Switched global theme mode to '${targetMode}'.` },
+          ])
+          return
+        }
+        if (targetMode === 'toggle') {
+          const nextMode = activeMode === 'dark' ? 'light' : 'dark'
+          dispatch(toggleMode())
+          appendLines([
+            { type: 'success', content: `[sudo] Toggled global theme mode to '${nextMode}'.` },
+          ])
+          return
+        }
+        appendLines([
+          {
+            type: 'error',
+            content: "sudo mode: specify 'dark', 'light', or 'toggle'.",
+          },
         ])
         break
       }
@@ -209,6 +245,7 @@ export default function TerminalApp() {
 ───────────────
 OS: DossierOS Web Desktop (Next.js 16)
 User: Ankur (Full-Stack Developer)
+Mode: ${activeMode}
 Accent: ${activeAccent} (${theme.rgb})
 Stack: React, Next.js, Node.js, WebRTC, PostgreSQL, MongoDB
 Shell: dossier-sh 1.0`,
@@ -221,7 +258,7 @@ Shell: dossier-sh 1.0`,
         appendLines([
           {
             type: 'output',
-            content: `Active Accent: ${activeAccent}\nRGB Value:     ${theme.rgb}`,
+            content: `Active Mode:   ${activeMode}\nActive Accent: ${activeAccent}\nRGB Value:     ${theme.rgb}`,
           },
         ])
         break
@@ -282,12 +319,12 @@ Shell: dossier-sh 1.0`,
           {
             type: 'output',
             content: `Featured Projects:
-  • DossierOS        — Interactive web desktop portfolio OS
-  • ZeroStream       — Multi-node live sports streaming platform (WebRTC + Node.js)
-  • firstXchange     — Full-stack crypto exchange (Next.js + Express + PostgreSQL)
-  • DPL Scorer       — Real-time tournament cricket scoring app (Socket.io + MongoDB)
-  • Available        — No-login ephemeral text & file sharing
-  • one-wallet-react — Published npm React component package`,
+- DossierOS        — Interactive web desktop portfolio OS
+- ZeroStream       — Multi-node live sports streaming platform (WebRTC + Node.js)
+- firstXchange     — Full-stack crypto exchange (Next.js + Express + PostgreSQL)
+- DPL Scorer       — Real-time tournament cricket scoring app (Socket.io + MongoDB)
+- Available        — No-login ephemeral text & file sharing
+- one-wallet-react — Published npm React component package`,
           },
         ])
         break
@@ -378,7 +415,9 @@ Shell: dossier-sh 1.0`,
   return (
     <div
       onClick={() => inputRef.current?.focus()}
-      className="h-full w-full overflow-y-auto bg-[#070a0f] text-slate-200 font-mono text-xs sm:text-[13px] p-3.5 sm:p-5 select-text cursor-text"
+      className={`h-full w-full overflow-y-auto font-mono text-xs sm:text-[13px] p-3.5 sm:p-5 select-text cursor-text transition-colors duration-200 ${
+        isLight ? 'bg-slate-50 text-slate-800' : 'bg-[#070a0f] text-slate-200'
+      }`}
     >
       <div className="flex flex-col gap-2">
         {lines.map((line) => {
@@ -391,19 +430,27 @@ Shell: dossier-sh 1.0`,
                 >
                   {line.prompt}
                 </span>
-                <span className="text-white break-all">{line.content}</span>
+                <span className={`${surface.textPrimary} break-all`}>
+                  {line.content}
+                </span>
               </div>
             )
           }
 
           const colorClass =
             line.type === 'error'
-              ? 'text-rose-400'
+              ? isLight
+                ? 'text-rose-600'
+                : 'text-rose-400'
               : line.type === 'success'
-              ? 'text-emerald-400'
+              ? isLight
+                ? 'text-emerald-700'
+                : 'text-emerald-400'
               : line.type === 'info'
-              ? 'text-sky-300'
-              : 'text-slate-300'
+              ? isLight
+                ? 'text-sky-700'
+                : 'text-sky-300'
+              : surface.textSecondary
 
           return (
             <pre
@@ -433,10 +480,12 @@ Shell: dossier-sh 1.0`,
             spellCheck={false}
             autoComplete="off"
             aria-label="Terminal command input"
-            className="flex-1 min-w-0 bg-transparent text-white outline-none caret-current"
+            className={`flex-1 min-w-0 bg-transparent outline-none caret-current ${surface.textPrimary}`}
             style={{
               caretColor: theme.rgb,
-              textShadow: `0 0 10px rgba(${accentRgbClean}, 0.2)`,
+              textShadow: isLight
+                ? 'none'
+                : `0 0 10px rgba(${accentRgbClean}, 0.2)`,
             }}
           />
         </form>

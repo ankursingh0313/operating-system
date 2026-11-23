@@ -3,9 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { closeApp, focusApp, toggleMaximizeApp } from '@/lib/features/dockSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import { VscMultipleWindows, VscWindow } from 'react-icons/vsc'
-import { FaRegWindowRestore } from 'react-icons/fa'
 import { IoMdClose } from 'react-icons/io'
 
 interface WindowProps {
@@ -25,12 +24,14 @@ export default function Window({
   defaultHeight = 450,
 }: WindowProps) {
   const dispatch = useAppDispatch()
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const { openApps, minimizedApps, maximizedApps, focusedApp, windowOrder } =
     useAppSelector((state) => state.dock)
 
   const activeAccent = hydrated ? accent : 'blue'
+  const activeMode = hydrated ? mode : 'dark'
   const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
 
   const isOpen = openApps.includes(id)
   const isMinimized = minimizedApps.includes(id)
@@ -202,7 +203,7 @@ export default function Window({
       ref={windowRef}
       onContextMenu={(e) => e.preventDefault()}
       onClick={() => dispatch(focusApp(id))}
-      className={`flex flex-col overflow-hidden shadow-2xl border border-white/20 bg-gray-900/90 backdrop-blur-2xl transition-[width,height] duration-150 
+      className={`flex flex-col overflow-hidden shadow-2xl border backdrop-blur-2xl transition-[width,height,background-color,border-color] duration-150 ${surface.border} ${surface.windowBg} ${surface.textPrimary}
         ${
           isMaximized
             ? 'fixed inset-0 w-screen h-screen rounded-none top-0 left-0 translate-x-0 bottom-0 z-[9999]'
@@ -221,24 +222,28 @@ export default function Window({
       <div
         onMouseDown={handleMouseDownHeader}
         onTouchStart={handleTouchStartHeader}
-        className="h-10 px-4 flex items-center justify-between bg-white/[0.04] border-b border-white/10 select-none cursor-grab active:cursor-grabbing touch-none"
+        className={`h-10 px-4 flex items-center justify-between border-b select-none cursor-grab active:cursor-grabbing touch-none ${surface.windowHeaderBg} ${surface.borderSubtle}`}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold tracking-wide text-gray-200">{title}</span>
+          <span className={`text-xs font-semibold tracking-wide ${surface.textPrimary}`}>
+            {title}
+          </span>
         </div>
 
         {/* Window Controls (Maximize & Close) */}
         <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
           <button
+            type="button"
             onClick={toggleMaximize}
-            className="w-5 h-5 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
+            className="w-5 h-5 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm cursor-pointer"
             title={isMaximized ? 'Restore' : 'Maximize'}
           >
             {isMaximized ? <VscMultipleWindows /> : <VscWindow />}
           </button>
           <button
+            type="button"
             onClick={() => dispatch(closeApp(id))}
-            className="w-5 h-5 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm"
+            className="w-5 h-5 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition text-xs text-black font-bold opacity-80 hover:opacity-100 shadow-sm cursor-pointer"
             title="Close"
           >
             <IoMdClose />
@@ -247,7 +252,7 @@ export default function Window({
       </div>
 
       {/* Window Body */}
-      <div className="flex-1 overflow-auto p-0 text-gray-100 text-sm">
+      <div className={`flex-1 overflow-auto p-0 text-sm ${surface.textPrimary}`}>
         {children}
       </div>
 
@@ -258,7 +263,7 @@ export default function Window({
           className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-end justify-end p-1 opacity-40 hover:opacity-100 hidden sm:flex"
           title="Resize"
         >
-          <div className="w-2 h-2 border-r-2 border-b-2 border-white/50" />
+          <div className={`w-2 h-2 border-r-2 border-b-2 ${surface.border}`} />
         </div>
       )}
     </div>

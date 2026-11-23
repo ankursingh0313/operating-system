@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppSelector, useAppDispatch } from '@/lib/hooks'
 import { openApp } from '@/lib/features/dockSlice'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import Image from 'next/image'
 
 interface AppItem {
@@ -47,13 +47,17 @@ export default function Dock() {
     setIsMounted(true)
   }, [])
 
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const { dockApps, openApps, maximizedApps, focusedApp } = useAppSelector(
     (state) => state.dock
   )
 
   const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
   const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
+  const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   // Pinned app IDs derived from dockApps
   const pinnedAppIds = new Set(
@@ -125,6 +129,23 @@ export default function Dock() {
     dispatch(openApp(appId))
   }
 
+  const dockBg = surface.dockBg
+  const dockBorderColor = isLight
+    ? 'rgba(15, 23, 42, 0.14)'
+    : 'rgba(255, 255, 255, 0.12)'
+  const dividerColor = isLight
+    ? 'rgba(15, 23, 42, 0.16)'
+    : 'rgba(255, 255, 255, 0.14)'
+  const hoverBg = isLight
+    ? 'rgba(15, 23, 42, 0.08)'
+    : 'rgba(255, 255, 255, 0.12)'
+  const inactiveDotColor = isLight
+    ? 'rgba(15, 23, 42, 0.35)'
+    : 'rgba(255, 255, 255, 0.6)'
+  const collapsedBg = isLight
+    ? 'rgba(15, 23, 42, 0.35)'
+    : 'rgba(255, 255, 255, 0.32)'
+
   return (
     <>
       <style>{`
@@ -155,9 +176,9 @@ export default function Dock() {
           align-items: center;
           backdrop-filter: blur(12px) saturate(1.8);
           -webkit-backdrop-filter: blur(12px) saturate(1.8);
-          background: rgba(30, 30, 46, 0.75);
-          border-top: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4),
+          background: ${dockBg};
+          border-top: 1px solid ${dockBorderColor};
+          box-shadow: 0 -10px 30px rgba(0, 0, 0, ${isLight ? '0.14' : '0.4'}),
                       0 0 20px 2px var(--dock-glow);
           overflow: hidden;
           transition:
@@ -192,7 +213,7 @@ export default function Dock() {
             height: 5.75rem;
             padding: 0.25rem 2rem;
             gap: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid ${dockBorderColor};
             border-radius: 1.25rem;
           }
         }
@@ -205,16 +226,16 @@ export default function Dock() {
           padding: 0;
           margin-bottom: 10px;
           border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.32);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+          background: ${collapsedBg};
+          border: 1px solid ${dockBorderColor};
+          box-shadow: 0 2px 10px rgba(0, 0, 0, ${isLight ? '0.18' : '0.45'});
           cursor: pointer;
         }
 
         .os-dock-items {
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           width: 100%;
           gap: 0.25rem;
           overflow-x: auto;
@@ -245,7 +266,7 @@ export default function Dock() {
         .dock-divider {
           width: 1px;
           height: 1.75rem;
-          background: rgba(255, 255, 255, 0.14);
+          background: ${dividerColor};
           margin: 0 0.1rem;
           flex-shrink: 0;
         }
@@ -286,9 +307,9 @@ export default function Dock() {
 
         .dock-icon-wrapper:hover {
           border-radius: 1rem;
-          background: rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.25);
-          box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+          background: ${hoverBg};
+          border-color: ${dockBorderColor};
+          box-shadow: 0 10px 20px -5px rgba(0, 0, 0, ${isLight ? '0.12' : '0.3'});
         }
 
         .dock-icon-wrapper.focused {
@@ -303,7 +324,7 @@ export default function Dock() {
           width: 4px;
           height: 4px;
           border-radius: 50%;
-          background-color: rgba(255, 255, 255, 0.6);
+          background-color: ${inactiveDotColor};
           transition: all 0.2s ease;
         }
 
@@ -326,8 +347,8 @@ export default function Dock() {
           }}
           className={`os-dock ${isCollapsed ? 'collapsed' : ''}`}
           style={{
-            ['--dock-glow' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.15)`,
-            ['--dock-focus-bg' as string]: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.2)`,
+            ['--dock-glow' as string]: `rgba(${accentRgbClean}, 0.15)`,
+            ['--dock-focus-bg' as string]: `rgba(${accentRgbClean}, 0.2)`,
             ['--dock-border' as string]: theme.rgb,
             ['--dock-indicator' as string]: theme.rgb,
           }}

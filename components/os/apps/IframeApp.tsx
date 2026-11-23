@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import { useAppSelector } from '@/lib/hooks'
 
 interface IframeAppProps {
@@ -11,19 +11,39 @@ interface IframeAppProps {
 
 export default function IframeApp({ src, title = 'Web App' }: IframeAppProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
-  const theme = COLOR_PACKAGES[hydrated ? accent : 'blue']
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
+
+  const activeAccent = hydrated ? accent : 'blue'
+  const activeMode = hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
+  const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-gray-950/60 overflow-hidden ">
+    <div
+      className={`relative w-full h-full flex flex-col overflow-hidden transition-colors duration-200 ${
+        isLight ? 'bg-slate-100/80' : 'bg-gray-950/60'
+      }`}
+    >
       {/* Loading Spinner / Skeleton while iframe loads */}
       {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-10 gap-3">
-          <div 
-            className="w-7 h-7 border-2 border-white/20 border-t-transparent rounded-full animate-spin" 
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm z-10 gap-3 ${
+            isLight ? 'bg-white/85' : 'bg-gray-900/80'
+          }`}
+        >
+          <div
+            className={`w-7 h-7 border-2 border-t-transparent rounded-full animate-spin ${
+              isLight ? 'border-slate-900/20' : 'border-white/20'
+            }`}
             style={{ borderTopColor: theme.rgb }}
           />
-          <span className="text-xs font-mono opacity-60 tracking-wider">Loading {title}...</span>
+          <span
+            className={`text-xs font-mono tracking-wider ${surface.textMuted}`}
+          >
+            Loading {title}...
+          </span>
         </div>
       )}
 

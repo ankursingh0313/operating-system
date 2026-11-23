@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { COLOR_PACKAGES } from "@/lib/themes/colorPackages";
+import { COLOR_PACKAGES, getSurfacePackage } from "@/lib/themes/colorPackages";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
     setGitHubLoading,
@@ -41,11 +41,15 @@ interface WeeklyPoint {
 export default function GitHubProfileApp() {
     const dispatch = useAppDispatch();
     const { data, loading, error } = useAppSelector((state) => state.github);
-    const { accent, hydrated } = useAppSelector((state) => state.theme);
+    const { accent, mode, hydrated } = useAppSelector((state) => state.theme);
     const { maximizedApps } = useAppSelector((state) => state.dock);
 
     const activeAccent = hydrated ? accent : "blue";
+    const activeMode = hydrated ? mode : "dark";
+    const isLight = activeMode === "light";
+
     const theme = COLOR_PACKAGES[activeAccent];
+    const surface = getSurfacePackage(activeMode);
     const isFullscreen = maximizedApps.includes("github");
 
     const [hoveredPoint, setHoveredPoint] = useState<{
@@ -140,15 +144,28 @@ export default function GitHubProfileApp() {
         }
     };
 
+    const shellBg = isLight ? "bg-slate-50" : "bg-[#0d1117]";
+    const panelBg = isLight ? "bg-white" : "bg-[#161b22]";
+    const insetBg = isLight ? "bg-slate-100/90" : "bg-[#0d1117]";
+    const cellBackingBg = isLight ? "bg-slate-200/80" : "bg-gray-900";
+    const actionBtnClass = isLight
+        ? "bg-slate-100 hover:bg-slate-200/80 border-slate-300/80 text-slate-800"
+        : "bg-[#21262d] hover:bg-[#30363d] border-gray-700 text-gray-200";
+    const repoHoverClass = isLight ? "hover:bg-slate-50" : "hover:bg-[#1f242c]";
+
     if (loading || (!data && !error)) {
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-3 py-20 bg-[#0d1117]">
+            <div
+                className={`flex flex-col items-center justify-center h-full gap-3 py-20 ${shellBg}`}
+            >
                 <div
-                    className="w-6 h-6 border-2 border-white/20 border-t-transparent rounded-full animate-spin"
+                    className={`w-6 h-6 border-2 border-t-transparent rounded-full animate-spin ${
+                        isLight ? "border-slate-900/20" : "border-white/20"
+                    }`}
                     style={{ borderTopColor: theme.rgb }}
                 />
-                <span className="text-xs font-mono text-gray-400">
-                    Loading GitHub profile & contribution history...
+                <span className={`text-xs font-mono ${surface.textMuted}`}>
+                    Loading GitHub profile &amp; contribution history...
                 </span>
             </div>
         );
@@ -156,12 +173,16 @@ export default function GitHubProfileApp() {
 
     if (error || !data) {
         return (
-            <div className="flex flex-col items-center justify-center gap-3 h-full text-red-400 text-xs bg-[#0d1117] p-6">
+            <div
+                className={`flex flex-col items-center justify-center gap-3 h-full text-xs ${shellBg} p-6 ${
+                    isLight ? "text-red-600" : "text-red-400"
+                }`}
+            >
                 <span>⚠️ Error: {error || "No data returned"}</span>
                 <button
                     type="button"
                     onClick={handleRefresh}
-                    className="px-3 py-1 rounded-lg bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-gray-200 transition cursor-pointer"
+                    className={`px-3 py-1 rounded-lg border transition cursor-pointer ${actionBtnClass}`}
                 >
                     ↻ Retry
                 </button>
@@ -182,32 +203,40 @@ export default function GitHubProfileApp() {
     const gradientId = `contrib-grad-${activeAccent}`;
 
     return (
-        <div className="flex flex-col md:flex-row h-full bg-[#0d1117] text-gray-200 p-4 md:p-6 gap-6 overflow-hidden">
+        <div
+            className={`flex flex-col md:flex-row h-full p-4 md:p-6 gap-6 overflow-hidden transition-colors duration-200 ${shellBg} ${surface.textPrimary}`}
+        >
             {/* Left Sidebar: Profile Card */}
             <div className="flex flex-col w-full md:w-72 shrink-0 gap-4 overflow-y-auto">
                 <div className="relative">
                     <img
                         src={user.avatar_url}
                         alt={user.name}
-                        className="w-32 h-32 md:w-full md:h-auto aspect-square rounded-full border border-gray-700 shadow-xl object-cover bg-gray-800"
+                        className={`w-32 h-32 md:w-full md:h-auto aspect-square rounded-full border shadow-xl object-cover ${surface.border} ${
+                            isLight ? "bg-slate-200" : "bg-gray-800"
+                        }`}
                     />
                 </div>
 
                 <div>
-                    <h1 className="text-xl font-bold text-white leading-tight">
+                    <h1
+                        className={`text-xl font-bold leading-tight ${surface.textPrimary}`}
+                    >
                         {user.name}
                     </h1>
-                    <p className="text-sm font-light text-gray-400">
+                    <p className={`text-sm font-light ${surface.textMuted}`}>
                         {user.login} · he/him
                     </p>
-                    <p className="text-xs font-semibold text-gray-300 mt-1">
+                    <p
+                        className={`text-xs font-semibold mt-1 ${surface.textSecondary}`}
+                    >
                         Full-stack software developer specializing in MERN
                         stack, Web3 systems, and high-throughput backend
                         architecture.
                     </p>
                 </div>
 
-                <p className="text-xs text-gray-300 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${surface.textSecondary}`}>
                     {user.bio ||
                         "Full-stack software developer specializing in MERN stack, Web3 systems, and high-throughput backend architecture."}
                 </p>
@@ -216,12 +245,14 @@ export default function GitHubProfileApp() {
                     href={user.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-1.5 px-3 rounded-lg bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-xs font-medium text-center text-gray-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                    className={`w-full py-1.5 px-3 rounded-lg border text-xs font-medium text-center transition flex items-center justify-center gap-1 cursor-pointer ${actionBtnClass}`}
                 >
                     View on GitHub <MdArrowOutward className="text-sm" />
                 </a>
 
-                <div className="flex items-center gap-2 text-xs text-gray-400 border-t border-gray-800 pt-4">
+                <div
+                    className={`flex items-center gap-2 text-xs border-t pt-4 ${surface.textMuted} ${surface.borderSubtle}`}
+                >
                     <span className="flex items-center gap-1">
                         <IoMdPeople /> {user.followers} followers
                     </span>
@@ -241,10 +272,14 @@ export default function GitHubProfileApp() {
                                 isFullscreen
                                     ? "xl:col-span-7"
                                     : "xl:col-span-12"
-                            } p-4 rounded-xl bg-[#161b22] border border-gray-800 flex flex-col justify-between gap-3 shadow-lg`}
+                            } p-4 rounded-xl border flex flex-col justify-between gap-3 shadow-lg ${panelBg} ${surface.borderSubtle}`}
                         >
-                            <div className="flex flex-wrap justify-between items-center gap-2 text-xs text-gray-400">
-                                <span className="font-medium text-gray-300">
+                            <div
+                                className={`flex flex-wrap justify-between items-center gap-2 text-xs ${surface.textMuted}`}
+                            >
+                                <span
+                                    className={`font-medium ${surface.textSecondary}`}
+                                >
                                     {contributionCalendar.totalContributions.toLocaleString()}{" "}
                                     Contributions in the last year.
                                 </span>
@@ -257,7 +292,9 @@ export default function GitHubProfileApp() {
                             </div>
 
                             {/* Scrollable Contribution Matrix Graph */}
-                            <div className="overflow-x-auto py-2 grid grid-cols-3 gap-0 scrollbar-thin scrollbar-thumb-gray-700 bg-[#0d1117] p-2 rounded-sm">
+                            <div
+                                className={`overflow-x-auto py-2 grid grid-cols-3 gap-0 p-2 rounded-sm border ${insetBg} ${surface.borderSubtle}`}
+                            >
                                 {contributionCalendar.weeks.map(
                                     (week, wIndex) => (
                                         <div
@@ -268,7 +305,7 @@ export default function GitHubProfileApp() {
                                                 (day, dIndex) => (
                                                     <div
                                                         key={dIndex}
-                                                        className="flex-1 rounded-sm bg-gray-900"
+                                                        className={`flex-1 rounded-sm ${cellBackingBg}`}
                                                         style={{
                                                             boxShadow:
                                                                 theme.rawPrimary,
@@ -292,13 +329,15 @@ export default function GitHubProfileApp() {
                                 )}
                             </div>
 
-                            <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1">
+                            <div
+                                className={`flex justify-between items-center text-[10px] pt-1 ${surface.textMuted}`}
+                            >
                                 <button
                                     type="button"
                                     onClick={handleRefresh}
                                     disabled={loading}
                                     title="Refresh GitHub data"
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#21262d] hover:bg-[#30363d] border border-gray-700 text-[11px] font-medium text-gray-200 transition disabled:opacity-50 cursor-pointer"
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium transition disabled:opacity-50 cursor-pointer ${actionBtnClass}`}
                                 >
                                     <span
                                         className={
@@ -313,51 +352,20 @@ export default function GitHubProfileApp() {
                                 </button>
                                 <div className="flex items-center gap-1.5">
                                     <span>Less</span>
-                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
+                                    {[0, 0.25, 0.5, 0.75, 1].map((opacity) => (
                                         <span
-                                            className="w-full h-full block"
-                                            style={{
-                                                backgroundColor: theme.rgb,
-                                                opacity: 0,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                        <span
-                                            className="w-full h-full block"
-                                            style={{
-                                                backgroundColor: theme.rgb,
-                                                opacity: 0.25,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                        <span
-                                            className="w-full h-full block"
-                                            style={{
-                                                backgroundColor: theme.rgb,
-                                                opacity: 0.5,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                        <span
-                                            className="w-full h-full block"
-                                            style={{
-                                                backgroundColor: theme.rgb,
-                                                opacity: 0.75,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="w-2.5 h-2.5 rounded-sm bg-gray-900 border border-gray-800 overflow-hidden">
-                                        <span
-                                            className="w-full h-full block"
-                                            style={{
-                                                backgroundColor: theme.rgb,
-                                                opacity: 1,
-                                            }}
-                                        />
-                                    </span>
+                                            key={opacity}
+                                            className={`w-2.5 h-2.5 rounded-sm border overflow-hidden ${cellBackingBg} ${surface.borderSubtle}`}
+                                        >
+                                            <span
+                                                className="w-full h-full block"
+                                                style={{
+                                                    backgroundColor: theme.rgb,
+                                                    opacity,
+                                                }}
+                                            />
+                                        </span>
+                                    ))}
                                     <span>More</span>
                                 </div>
                             </div>
@@ -365,29 +373,37 @@ export default function GitHubProfileApp() {
 
                         {/* Right Side Line Chart: Only Visible When GitHub Window Is Fullscreen */}
                         {isFullscreen && (
-                            <div className="xl:col-span-5 p-4 rounded-xl bg-[#161b22] border border-gray-800 flex flex-col justify-between gap-2 shadow-lg">
+                            <div
+                                className={`xl:col-span-5 p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-lg ${panelBg} ${surface.borderSubtle}`}
+                            >
                                 <div className="flex items-center justify-between gap-2 text-xs">
                                     <div>
-                                        <span className="font-medium text-gray-200 block">
+                                        <span
+                                            className={`font-medium block ${surface.textPrimary}`}
+                                        >
                                             Weekly Trend
                                         </span>
-                                        <span className="text-[10px] text-gray-400 font-mono">
+                                        <span
+                                            className={`text-[10px] font-mono ${surface.textMuted}`}
+                                        >
                                             Avg {avgWeekly}/wk · Peak{" "}
                                             {peakWeekly}/wk
                                         </span>
                                     </div>
                                     <span
-                                        className="text-[10px] px-2 py-0.5 rounded-full font-mono border border-white/10"
+                                        className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
                                         style={{ color: theme.rgb }}
                                     >
                                         {weeklyPoints.length}w
                                     </span>
                                 </div>
 
-                                <div className="relative w-full h-[112px] bg-[#0d1117] rounded-lg border border-gray-800/80 p-2">
+                                <div
+                                    className={`relative w-full h-[112px] rounded-lg border p-2 ${insetBg} ${surface.borderSubtle}`}
+                                >
                                     {hoveredPoint && (
                                         <div
-                                            className="pointer-events-none absolute z-10 px-2 py-1 rounded bg-[#1f242c] border border-gray-700 text-[10px] font-mono text-gray-100 shadow-md whitespace-nowrap"
+                                            className={`pointer-events-none absolute z-10 px-2 py-1 rounded border text-[10px] font-mono shadow-md whitespace-nowrap ${panelBg} ${surface.border} ${surface.textPrimary}`}
                                             style={{
                                                 left: `${Math.min(72, Math.max(8, hoveredPoint.xPct))}%`,
                                                 top: "6px",
@@ -435,7 +451,11 @@ export default function GitHubProfileApp() {
                                             x2={chartGeometry.width - 10}
                                             y1={chartGeometry.height - 18}
                                             y2={chartGeometry.height - 18}
-                                            stroke="rgba(255,255,255,0.08)"
+                                            stroke={
+                                                isLight
+                                                    ? "rgba(15,23,42,0.1)"
+                                                    : "rgba(255,255,255,0.08)"
+                                            }
                                             strokeWidth="1"
                                         />
                                         <line
@@ -443,7 +463,11 @@ export default function GitHubProfileApp() {
                                             x2={chartGeometry.width - 10}
                                             y1="14"
                                             y2="14"
-                                            stroke="rgba(255,255,255,0.05)"
+                                            stroke={
+                                                isLight
+                                                    ? "rgba(15,23,42,0.08)"
+                                                    : "rgba(255,255,255,0.05)"
+                                            }
                                             strokeDasharray="3 3"
                                             strokeWidth="1"
                                         />
@@ -487,7 +511,11 @@ export default function GitHubProfileApp() {
                                                             cy={c.y}
                                                             r="3.5"
                                                             fill={theme.rgb}
-                                                            stroke="#0d1117"
+                                                            stroke={
+                                                                isLight
+                                                                    ? "#f1f5f9"
+                                                                    : "#0d1117"
+                                                            }
                                                             strokeWidth="1.5"
                                                         />
                                                     )}
@@ -528,7 +556,9 @@ export default function GitHubProfileApp() {
 
                     {/* Repositories List Container */}
                     <div className="flex flex-col flex-1 overflow-hidden gap-3">
-                        <h3 className="text-sm font-semibold text-gray-200 border-b border-gray-800 pb-2 shrink-0">
+                        <h3
+                            className={`text-sm font-semibold border-b pb-2 shrink-0 ${surface.textPrimary} ${surface.borderSubtle}`}
+                        >
                             Pinned Repositories
                         </h3>
 
@@ -539,7 +569,7 @@ export default function GitHubProfileApp() {
                                     href={repo.html_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-4 rounded-xl bg-[#161b22] hover:bg-[#1f242c] border border-gray-800 transition flex flex-col justify-between gap-3 group h-36"
+                                    className={`p-4 rounded-xl border transition flex flex-col justify-between gap-3 group h-36 ${panelBg} ${repoHoverClass} ${surface.borderSubtle}`}
                                 >
                                     <div className="flex flex-col gap-1">
                                         <div className="flex justify-between items-start">
@@ -549,19 +579,25 @@ export default function GitHubProfileApp() {
                                             >
                                                 {repo.name}
                                             </span>
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full border border-gray-700 text-gray-400 shrink-0">
+                                            <span
+                                                className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${surface.border} ${surface.textMuted}`}
+                                            >
                                                 {repo.private
                                                     ? "Private"
                                                     : "Public"}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-gray-400 line-clamp-2">
+                                        <p
+                                            className={`text-xs line-clamp-2 ${surface.textMuted}`}
+                                        >
                                             {repo.description ||
                                                 "No description available."}
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
+                                    <div
+                                        className={`flex items-center justify-between text-[11px] font-mono ${surface.textMuted}`}
+                                    >
                                         <div className="flex items-center gap-2">
                                             {repo.language && (
                                                 <span className="flex items-center gap-1">
@@ -573,7 +609,7 @@ export default function GitHubProfileApp() {
                                                                     repo
                                                                         .language
                                                                 ] ??
-                                                                "#fbbf2400",
+                                                                "#fbbf24",
                                                         }}
                                                     />
                                                     {repo.language}
@@ -581,7 +617,13 @@ export default function GitHubProfileApp() {
                                             )}
                                         </div>
                                         {repo.stargazers_count > 0 && (
-                                            <span className="inline-flex items-center gap-1 text-amber-300">
+                                            <span
+                                                className={`inline-flex items-center gap-1 ${
+                                                    isLight
+                                                        ? "text-amber-600"
+                                                        : "text-amber-300"
+                                                }`}
+                                            >
                                                 <span>
                                                     {repo.stargazers_count}
                                                 </span>

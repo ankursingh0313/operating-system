@@ -1,21 +1,26 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import {
   closeContextMenu,
   triggerMenuAction,
 } from '@/lib/features/contextMenuSlice';
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages';
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages';
 
 export default function ContextMenu() {
   const dispatch = useAppDispatch();
   const { isOpen, x, y, items } = useAppSelector((state) => state.contextMenu);
-  const accent = useAppSelector((state) => state.theme.accent);
-  const theme = COLOR_PACKAGES[accent];
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme);
+
+  const activeAccent = hydrated ? accent : 'blue';
+  const activeMode = hydrated ? mode : 'dark';
+  const isLight = activeMode === 'light';
+
+  const theme = COLOR_PACKAGES[activeAccent];
+  const surface = getSurfacePackage(activeMode);
 
   useEffect(() => {
-    // Runs when right-clicking ANYWHERE that didn't call e.stopPropagation()
     const handleGlobalContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       dispatch(closeContextMenu());
@@ -38,9 +43,8 @@ export default function ContextMenu() {
 
   if (!isOpen || items.length === 0) return null;
 
-  // Keep menu within viewport bounds (assuming ~200px width, ~40px per item)
   const menuWidth = 208;
-  const menuHeight = items.length * 38;
+  const menuHeight = items.length * 40;
   const safeX =
     typeof window !== 'undefined' && x + menuWidth > window.innerWidth
       ? window.innerWidth - menuWidth - 8
@@ -50,6 +54,13 @@ export default function ContextMenu() {
       ? window.innerHeight - menuHeight - 8
       : y;
 
+  // Convert `bg-<color>-600` to a hover-only class `hover:bg-<color>-600`
+  const hoverAccentBg = theme.primaryBg
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((cls) => (cls.startsWith('hover:') ? cls : `hover:${cls}`))
+    .join(' ');
+
   return (
     <div
       style={{ top: safeY, left: safeX }}
@@ -57,34 +68,43 @@ export default function ContextMenu() {
         e.preventDefault();
         e.stopPropagation();
       }}
-      className={`fixed z-[9999] w-52 rounded-lg bg-gray-900/95 backdrop-blur-md border border-gray-700/80 p-1.5 shadow-2xl ${theme.glow} select-none`}
+      className={`fixed z-[9999] w-52 rounded-xl backdrop-blur-md border p-1.5 shadow-2xl ${surface.border} ${
+        isLight ? 'bg-white/95' : 'bg-gray-900/95'
+      } ${theme.glow} select-none`}
     >
-      {items.map((item) => (
-        <div key={item.id}>
-          {item.dividerAbove && (
-            <div className="my-1 border-t border-gray-800" />
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              triggerMenuAction(item.id);
-              dispatch(closeContextMenu());
-            }}
-            className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-md transition-colors ${
-              item.danger
-                ? 'text-red-400 hover:bg-red-500/20'
-                : `text-gray-200 hover:${theme.primaryBg} hover:text-white`
-            }`}
-          >
-            <span>{item.label}</span>
-            {item.shortcut && (
-              <span className="text-[10px] text-gray-400 ml-4">
-                {item.shortcut}
-              </span>
+      <div className="flex flex-col gap-0.5">
+        {items.map((item) => (
+          <div key={item.id}>
+            {item.dividerAbove && (
+              <div className={`my-1 border-t ${surface.borderSubtle}`} />
             )}
-          </button>
-        </div>
-      ))}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerMenuAction(item.id);
+                dispatch(closeContextMenu());
+              }}
+              className={`group w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                item.danger
+                  ? isLight
+                    ? 'text-red-600 hover:bg-red-600 hover:text-white'
+                    : 'text-red-400 hover:bg-red-500 hover:text-white'
+                  : `${surface.textPrimary} ${hoverAccentBg} hover:text-white`
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.shortcut && (
+                <span
+                  className={`text-[10px] ml-4 ${surface.textMuted} group-hover:text-white/80`}
+                >
+                  {item.shortcut}
+                </span>
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

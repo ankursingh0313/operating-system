@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAppSelector } from '@/lib/hooks'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import { IoMdSend } from 'react-icons/io'
-import { FaCheckCircle, FaExclamationTriangle, FaPaperclip } from 'react-icons/fa'
+import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
 
 interface ContactFormState {
   name: string
@@ -28,14 +28,20 @@ const QUICK_TOPICS = [
 ]
 
 export default function EmailApp() {
-  const { accent, hydrated } = useAppSelector((state) => state.theme)
+  const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  const theme = COLOR_PACKAGES[isMounted && hydrated ? accent : 'blue']
+  const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+
+  const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
+  const accentRgbClean = theme.rgb.replace(/[^\d,]/g, '')
 
   const [form, setForm] = useState<ContactFormState>(INITIAL_FORM)
   const [sending, setSending] = useState(false)
@@ -117,8 +123,29 @@ export default function EmailApp() {
     }
   }
 
+  const activePillText = isLight ? surface.textPrimary : '#ffffff'
+  const inactivePillClass = isLight
+    ? 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'
+    : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:bg-white/[0.06]'
+
+  const cardSurfaceClass = isLight
+    ? 'bg-white/90 border-slate-200/90 divide-slate-200/80 shadow-sm'
+    : 'bg-white/[0.03] border-white/[0.08] divide-white/[0.07]'
+
+  const fieldFocusClass = isLight
+    ? 'focus-within:bg-slate-50/90'
+    : 'focus-within:bg-white/[0.02]'
+
+  const placeholderClass = isLight
+    ? 'placeholder:text-slate-400'
+    : 'placeholder:text-slate-600'
+
   return (
-    <div className="relative h-full overflow-y-auto overflow-x-hidden bg-[#090c12] text-slate-200 selection:bg-white/15">
+    <div
+      className={`relative h-full overflow-y-auto overflow-x-hidden transition-colors duration-200 ${surface.appBg} ${surface.textSecondary} ${
+        isLight ? 'selection:bg-slate-900/10' : 'selection:bg-white/15'
+      }`}
+    >
       {/* Subtle ambient accent wash */}
       <div
         className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 sm:w-72 sm:h-72 rounded-full blur-[110px] opacity-20 transition-colors duration-300"
@@ -127,35 +154,28 @@ export default function EmailApp() {
 
       <div className="relative min-h-full w-full max-w-2xl mx-auto px-3.5 py-4 sm:px-7 sm:py-6 flex flex-col gap-3.5 sm:gap-5">
         {/* Composer Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] pb-3 sm:pb-4">
+        <div
+          className={`flex items-start justify-between gap-3 border-b pb-3 sm:pb-4 ${surface.borderSubtle}`}
+        >
           <div className="min-w-0">
-            {/* <div className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.18em] text-slate-400 font-medium">
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{
-                  backgroundColor: theme.rgb,
-                  boxShadow: `0 0 10px ${theme.rgb}`,
-                }}
-              />
-              New Message
-            </div> */}
-            <h2 className="text-base sm:text-xl font-semibold tracking-tight text-white mt-0.5 sm:mt-1 truncate">
+            <h2
+              className={`text-base sm:text-xl font-semibold tracking-tight mt-0.5 sm:mt-1 truncate ${surface.textPrimary}`}
+            >
               Start a Conversation
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-2">
+            <p
+              className={`text-[11px] sm:text-xs mt-0.5 line-clamp-2 ${surface.textMuted}`}
+            >
               Engineering roles, product builds, or creative collaborations.
             </p>
           </div>
-
-          {/* <div className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] sm:text-[11px] text-slate-400 shrink-0">
-            <FaPaperclip className="w-2.5 h-2.5 opacity-70" />
-            <span>Direct</span>
-          </div> */}
         </div>
 
-        {/* Quick Topic Pills (horizontal scroll on mobile, wrapped on desktop) */}
+        {/* Quick Topic Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap pb-1 sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <span className="text-[11px] text-slate-500 mr-0.5 shrink-0">
+          <span
+            className={`text-[11px] mr-0.5 shrink-0 ${surface.textMuted}`}
+          >
             Topic:
           </span>
           {QUICK_TOPICS.map((topic) => {
@@ -165,19 +185,17 @@ export default function EmailApp() {
                 key={topic}
                 type="button"
                 onClick={() => applyTopic(topic)}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium border transition cursor-pointer shrink-0 whitespace-nowrap"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition cursor-pointer shrink-0 whitespace-nowrap ${
+                  active ? '' : inactivePillClass
+                }`}
                 style={
                   active
                     ? {
-                        backgroundColor: `rgba(${theme.rgb.replace(/[^\d,]/g, '')}, 0.18)`,
+                        backgroundColor: `rgba(${accentRgbClean}, ${isLight ? '0.16' : '0.18'})`,
                         borderColor: theme.rgb,
-                        color: '#ffffff',
+                        color: activePillText,
                       }
-                    : {
-                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                        borderColor: 'rgba(255, 255, 255, 0.08)',
-                        color: '#94a3b8',
-                      }
+                    : undefined
                 }
               >
                 {topic}
@@ -187,12 +205,27 @@ export default function EmailApp() {
         </div>
 
         {/* Mail Fields */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-3 sm:gap-3.5">
-          <div className="flex-1 flex flex-col rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/[0.08] divide-y divide-white/[0.07] overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 flex flex-col gap-3 sm:gap-3.5"
+        >
+          <div
+            className={`flex-1 flex flex-col rounded-xl sm:rounded-2xl border divide-y overflow-hidden ${cardSurfaceClass}`}
+          >
             {/* From Row: Name + Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
-              <label className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 focus-within:bg-white/[0.02] transition">
-                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 w-14 sm:w-12 shrink-0">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x ${
+                isLight
+                  ? 'divide-slate-200/80 sm:divide-slate-200/80'
+                  : 'divide-white/[0.07] sm:divide-white/[0.07]'
+              }`}
+            >
+              <label
+                className={`flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition ${fieldFocusClass}`}
+              >
+                <span
+                  className={`text-[10px] sm:text-[11px] uppercase tracking-wider w-14 sm:w-12 shrink-0 ${surface.textMuted}`}
+                >
                   From
                 </span>
                 <input
@@ -202,12 +235,16 @@ export default function EmailApp() {
                   value={form.name}
                   onChange={handleChange}
                   placeholder="Your name"
-                  className="w-full min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none"
+                  className={`w-full min-w-0 bg-transparent text-xs sm:text-sm outline-none ${surface.textPrimary} ${placeholderClass}`}
                 />
               </label>
 
-              <label className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 focus-within:bg-white/[0.02] transition">
-                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 w-14 sm:w-auto shrink-0">
+              <label
+                className={`flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition ${fieldFocusClass}`}
+              >
+                <span
+                  className={`text-[10px] sm:text-[11px] uppercase tracking-wider w-14 sm:w-auto shrink-0 ${surface.textMuted}`}
+                >
                   Reply
                 </span>
                 <input
@@ -217,14 +254,18 @@ export default function EmailApp() {
                   value={form.email}
                   onChange={handleChange}
                   placeholder="you@domain.com"
-                  className="w-full min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none"
+                  className={`w-full min-w-0 bg-transparent text-xs sm:text-sm outline-none ${surface.textPrimary} ${placeholderClass}`}
                 />
               </label>
             </div>
 
             {/* Subject Row */}
-            <label className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 focus-within:bg-white/[0.02] transition">
-              <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-500 w-14 sm:w-12 shrink-0">
+            <label
+              className={`flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 transition ${fieldFocusClass}`}
+            >
+              <span
+                className={`text-[10px] sm:text-[11px] uppercase tracking-wider w-14 sm:w-12 shrink-0 ${surface.textMuted}`}
+              >
                 Subject
               </span>
               <input
@@ -233,12 +274,14 @@ export default function EmailApp() {
                 value={form.subject}
                 onChange={handleChange}
                 placeholder="What is this regarding?"
-                className="w-full min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none"
+                className={`w-full min-w-0 bg-transparent text-xs sm:text-sm outline-none ${surface.textPrimary} ${placeholderClass}`}
               />
             </label>
 
             {/* Body Row */}
-            <div className="flex-1 flex flex-col px-3 sm:px-4 py-2.5 sm:py-3 focus-within:bg-white/[0.02] transition">
+            <div
+              className={`flex-1 flex flex-col px-3 sm:px-4 py-2.5 sm:py-3 transition ${fieldFocusClass}`}
+            >
               <textarea
                 name="message"
                 rows={4}
@@ -247,7 +290,7 @@ export default function EmailApp() {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Write your message..."
-                className="w-full flex-1 min-h-[100px] sm:min-h-[130px] bg-transparent text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 outline-none resize-none leading-relaxed"
+                className={`w-full flex-1 min-h-[100px] sm:min-h-[130px] bg-transparent text-xs sm:text-sm outline-none resize-none leading-relaxed ${surface.textPrimary} ${placeholderClass}`}
               />
             </div>
           </div>
@@ -257,7 +300,11 @@ export default function EmailApp() {
             <div
               className={`flex items-start sm:items-center gap-2.5 px-3 sm:px-3.5 py-2.5 rounded-xl text-xs border ${
                 status.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+                  ? isLight
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+                  : isLight
+                  ? 'bg-rose-50 border-rose-200 text-rose-800'
                   : 'bg-rose-500/10 border-rose-500/25 text-rose-300'
               }`}
             >
@@ -272,7 +319,9 @@ export default function EmailApp() {
 
           {/* Footer Bar */}
           <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pt-0.5">
-            <span className="text-[11px] text-slate-500 text-center sm:text-left">
+            <span
+              className={`text-[11px] text-center sm:text-left ${surface.textMuted}`}
+            >
               {form.message.length} chars
               <span className="hidden sm:inline"> • Ctrl/⌘ + Enter to send</span>
             </span>

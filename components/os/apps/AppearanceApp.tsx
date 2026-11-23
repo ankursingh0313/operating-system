@@ -3,7 +3,7 @@
 import React from 'react'
 import { COLOR_PACKAGES, AccentColor } from '@/lib/themes/colorPackages'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
-import { setAccent, toggleMode, setWallpaper } from '@/lib/features/themeSlice'
+import { setAccent, toggleMode, setWallpaper, WallpaperType } from '@/lib/features/themeSlice'
 
 // Import all your wallpaper components
 import GradientWallpaper from '../wallpapers/GradientWallpaper'
@@ -17,29 +17,32 @@ import MeshWallpaper from '../wallpapers/MeshWallpaper'
 import RippleWallpaper from '../wallpapers/RippleWallpaper'
 import MosaicWallpaper from '../wallpapers/MosaicWallpaper'
 
+const WALLPAPERS: Array<{ id: WallpaperType; name: string }> = [
+  { id: 'gradient', name: 'Glowing Gradient' },
+  { id: 'stars', name: 'Starry Night' },
+  { id: 'grid', name: 'Cybernetic Grid' },
+  { id: 'radar', name: 'Radar Scanner' },
+  { id: 'geometric', name: 'Geometric Pattern' },
+  { id: 'terrain', name: 'Cracked Earth' },
+  { id: 'squares', name: 'Pattern Squares' },
+  { id: 'mesh', name: 'Modern Mesh' },
+  { id: 'ripple', name: 'Gradient Ripple' },
+  { id: 'mosaic', name: 'Geometric Mosaic' },
+]
+
 export default function AppearanceApp() {
   const dispatch = useAppDispatch()
   const { accent, mode, wallpaper, hydrated } = useAppSelector((state) => state.theme)
-  const currentTheme = COLOR_PACKAGES[hydrated ? accent : 'blue']
+
+  const activeAccent: AccentColor = hydrated ? accent : 'blue'
+  const activeWallpaper: WallpaperType = hydrated ? wallpaper : 'squares'
+  const activeMode: 'dark' | 'light' = hydrated ? mode : 'dark'
+  const currentTheme = COLOR_PACKAGES[activeAccent]
 
   const accentKeys = Object.keys(COLOR_PACKAGES) as AccentColor[]
+  const isLight = activeMode === 'light'
 
-  // Complete list of all your wallpapers matching their IDs
-  const wallpapers = [
-    { id: 'gradient', name: 'Glowing Gradient' },
-    { id: 'stars', name: 'Starry Night' },
-    { id: 'grid', name: 'Cybernetic Grid' },
-    { id: 'radar', name: 'Radar Scanner' },
-    { id: 'geometric', name: 'Geometric Pattern' },
-    { id: 'terrain', name: 'Cracked Earth' },
-    { id: 'squares', name: 'Pattern Squares' },
-    { id: 'mesh', name: 'Modern Mesh' },
-    { id: 'ripple', name: 'Gradient Ripple' },
-    { id: 'mosaic', name: 'Geometric Mosaic' },
-  ]
-
-  // Helper function to render the correct live wallpaper preview inside the miniature card
-  const renderWallpaperPreview = (id: string) => {
+  const renderWallpaperPreview = (id: WallpaperType) => {
     const previewContainerStyle = {
       transform: 'scale(0.2)',
       width: '500%',
@@ -91,26 +94,53 @@ export default function AppearanceApp() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e2e] text-gray-200 p-6 gap-6 overflow-y-auto select-none">
+    <div
+      className={`flex flex-col h-full p-6 gap-6 overflow-y-auto select-none transition-colors duration-200 ${
+        isLight
+          ? 'bg-slate-100 text-slate-900'
+          : 'bg-[#1e1e2e] text-gray-200'
+      }`}
+    >
       <div>
-        <h2 className="text-lg font-bold text-white">Appearance Settings</h2>
-        <p className="text-xs text-gray-400">Customize the look and feel of your portfolio OS environment.</p>
+        <h2 className={`text-lg font-bold ${isLight ? 'text-slate-950' : 'text-white'}`}>
+          Appearance Settings
+        </h2>
+        <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-gray-400'}`}>
+          Customize the look and feel of your portfolio OS environment.
+        </p>
       </div>
 
       {/* Accent Color Picker */}
-      <div className="flex flex-col gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/10">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 font-mono">Accent Color</span>
+      <div
+        className={`flex flex-col gap-3 p-4 rounded-xl border ${
+          isLight
+            ? 'bg-white border-slate-200 shadow-sm'
+            : 'bg-white/[0.03] border-white/10'
+        }`}
+      >
+        <span
+          className={`text-xs font-semibold uppercase tracking-wider font-mono ${
+            isLight ? 'text-slate-500' : 'text-gray-400'
+          }`}
+        >
+          Accent Color
+        </span>
         <div className="flex flex-wrap items-center gap-3">
           {accentKeys.map((key) => {
             const pkg = COLOR_PACKAGES[key]
-            const isSelected = accent === key
+            const isSelected = activeAccent === key
 
             return (
               <button
                 key={key}
+                type="button"
                 onClick={() => dispatch(setAccent(key))}
-                className={`w-8 h-8 rounded-full transition transform hover:scale-110 flex items-center justify-center border-2 ${
-                  isSelected ? 'border-white scale-110 shadow-lg' : 'border-transparent'
+                className={`w-8 h-8 rounded-full transition transform hover:scale-110 flex items-center justify-center border-2 cursor-pointer ${
+                  isSelected
+                    ? isLight
+                      ? 'border-slate-900 scale-110 shadow-lg'
+                      : 'border-white scale-110 shadow-lg'
+                    : 'border-transparent'
                 }`}
                 style={{ backgroundColor: pkg.rgb }}
                 title={pkg.name}
@@ -123,29 +153,48 @@ export default function AppearanceApp() {
       </div>
 
       {/* Wallpaper Grid Section with Live Previews */}
-      <div className="flex flex-col gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/10">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 font-mono">Desktop Wallpaper</span>
+      <div
+        className={`flex flex-col gap-3 p-4 rounded-xl border ${
+          isLight
+            ? 'bg-white border-slate-200 shadow-sm'
+            : 'bg-white/[0.03] border-white/10'
+        }`}
+      >
+        <span
+          className={`text-xs font-semibold uppercase tracking-wider font-mono ${
+            isLight ? 'text-slate-500' : 'text-gray-400'
+          }`}
+        >
+          Desktop Wallpaper
+        </span>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {wallpapers.map((wall) => {
-            const isSelected = wallpaper === wall.id
+          {WALLPAPERS.map((wall) => {
+            const isSelected = activeWallpaper === wall.id
 
             return (
               <div
                 key={wall.id}
                 onClick={() => dispatch(setWallpaper(wall.id))}
                 className={`group relative rounded-lg overflow-hidden border-2 cursor-pointer transition transform hover:scale-[1.02] ${
-                  isSelected ? 'border-white shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                  isSelected
+                    ? isLight
+                      ? 'border-slate-900 shadow-md'
+                      : 'border-white shadow-md'
+                    : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
                 <div className="h-50 w-full bg-gray-950 relative overflow-hidden">
-                  {/* Render the actual live wallpaper scaled down into the thumbnail card */}
                   {renderWallpaperPreview(wall.id)}
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition pointer-events-none" />
                 </div>
 
                 <div className="absolute bottom-0 inset-x-0 bg-black/70 backdrop-blur-sm px-2 py-1 flex justify-between items-center z-10">
                   <span className="text-[11px] font-medium text-white truncate">{wall.name}</span>
-                  {isSelected && <span className="text-[10px] text-emerald-400 font-mono font-bold">Active</span>}
+                  {isSelected && (
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                      Active
+                    </span>
+                  )}
                 </div>
               </div>
             )
@@ -154,17 +203,36 @@ export default function AppearanceApp() {
       </div>
 
       {/* Dark / Light Mode Toggle */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/10">
+      <div
+        className={`flex items-center justify-between p-4 rounded-xl border ${
+          isLight
+            ? 'bg-white border-slate-200 shadow-sm'
+            : 'bg-white/[0.03] border-white/10'
+        }`}
+      >
         <div className="flex flex-col">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 font-mono">Window Theme Mode</span>
-          <span className="text-xs text-gray-300">Currently running in {mode} mode</span>
+          <span
+            className={`text-xs font-semibold uppercase tracking-wider font-mono ${
+              isLight ? 'text-slate-500' : 'text-gray-400'
+            }`}
+          >
+            Window Theme Mode
+          </span>
+          <span className={`text-xs ${isLight ? 'text-slate-700' : 'text-gray-300'}`}>
+            Currently running in {activeMode} mode
+          </span>
         </div>
         <button
+          type="button"
           onClick={() => dispatch(toggleMode())}
-          className="px-4 py-2 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 transition border border-white/10"
+          className={`px-4 py-2 rounded-lg text-xs font-medium transition border cursor-pointer ${
+            isLight
+              ? 'bg-slate-900 hover:bg-slate-800 border-slate-900'
+              : 'bg-white/10 hover:bg-white/20 border-white/10'
+          }`}
           style={{ color: currentTheme.rgb }}
         >
-          Toggle {mode === 'dark' ? 'Light' : 'Dark'} Mode
+          Toggle {activeMode === 'dark' ? 'Light' : 'Dark'} Mode
         </button>
       </div>
     </div>

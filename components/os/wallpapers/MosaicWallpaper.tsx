@@ -1,9 +1,17 @@
 'use client'
 
 import React from 'react'
-import { ColorPackage } from '@/lib/themes/colorPackages'
+import { useAppSelector } from '@/lib/hooks'
+import { ColorPackage, getSurfacePackage } from '@/lib/themes/colorPackages'
 
 export default function MosaicWallpaper({ theme }: { theme: ColorPackage }) {
+  const { mode, hydrated } = useAppSelector((state) => state.theme)
+  const activeMode = hydrated ? mode : 'dark'
+  const isLight = activeMode === 'light'
+  const surface = getSurfacePackage(activeMode)
+
+  const c1Color = isLight ? surface.rawBg : '#180a22'
+
   return (
     <>
       <style>{`
@@ -13,7 +21,7 @@ export default function MosaicWallpaper({ theme }: { theme: ColorPackage }) {
           width: 100%;
           height: 100%;
           --s: 60px;
-          --c1: #180a22;
+          --c1: ${c1Color};
           --c2: ${theme.rgb};
           --_g: radial-gradient(25% 25% at 25% 25%, var(--c1) 99%, rgba(0, 0, 0, 0) 101%);
           background: var(--_g) var(--s) var(--s) / calc(2 * var(--s)) calc(2 * var(--s)),

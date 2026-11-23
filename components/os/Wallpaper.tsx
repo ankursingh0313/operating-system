@@ -1,9 +1,9 @@
-// components/os/Wallpaper.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useAppSelector } from '@/lib/hooks'
-import { COLOR_PACKAGES } from '@/lib/themes/colorPackages'
+import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
+import type { WallpaperType } from '@/lib/features/themeSlice'
 
 import GradientWallpaper from './wallpapers/GradientWallpaper'
 import GridWallpaper from './wallpapers/GridWallpaper'
@@ -23,15 +23,25 @@ export default function Wallpaper() {
     setIsMounted(true)
   }, [])
 
-  const { accent, wallpaper } = useAppSelector((state) => state.theme)
+  const { accent, mode, wallpaper, hydrated } = useAppSelector((state) => state.theme)
+
+  const activeAccent = isMounted && hydrated ? accent : 'blue'
+  const activeMode = isMounted && hydrated ? mode : 'dark'
+  const activeWallpaper: WallpaperType = isMounted && hydrated ? wallpaper : 'squares'
+
+  const theme = COLOR_PACKAGES[activeAccent]
+  const surface = getSurfacePackage(activeMode)
 
   if (!isMounted) {
-    return <div className="absolute inset-0 z-0 bg-[#030308] pointer-events-none" />
+    return (
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{ backgroundColor: surface.rawBg }}
+      />
+    )
   }
 
-  const theme = COLOR_PACKAGES[accent]
-
-  switch (wallpaper) {
+  switch (activeWallpaper) {
     case 'gradient':
       return <GradientWallpaper theme={theme} />
     case 'grid':
