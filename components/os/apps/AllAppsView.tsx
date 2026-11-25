@@ -100,6 +100,17 @@ function renderAppIcon(iconKey: AppIconKey) {
                     priority
                 />
             );
+        case "calculator":
+            return (
+                <Image
+                    className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12"
+                    src="/icons/calculator-4.png"
+                    alt="Calculator"
+                    width={48}
+                    height={48}
+                    priority
+                />
+            );
         case "apps":
         default:
             return <FaThLarge className="w-6 h-6" />;

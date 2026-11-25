@@ -5,6 +5,7 @@ import { useAppSelector, useAppDispatch } from '@/lib/hooks'
 import { openApp } from '@/lib/features/dockSlice'
 import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
 import Image from 'next/image'
+import CalculatorApp from './apps/CalculatorApp'
 
 interface AppItem {
   id: string
@@ -32,6 +33,10 @@ const UNPINNED_APP_META: Record<string, { name: string; icon: string }> = {
   appearance: {
     name: 'Appearance',
     icon: '/icons/themesIcon.png',
+  },
+  calculator: {
+    name: 'Calculator',
+    icon: '/icons/calculator-4.png',
   },
 }
 

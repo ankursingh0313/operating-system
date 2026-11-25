@@ -9,6 +9,7 @@ export type AppIconKey =
   | 'apps'
   | 'appearance'
   | 'terminal'
+  | 'calculator'
 
 export interface OSAppItem {
   id: string
@@ -112,6 +113,17 @@ const initialState: AppsState = {
       defaultWidth: 550,
       defaultHeight: 420,
       routeOrView: 'terminal',
+    },
+    calculator: {
+      id: 'calculator',
+      title: 'Calculator',
+      description: 'Standard arithmetic and calculation history.',
+      category: 'System',
+      iconKey: 'calculator',
+      installed: true,
+      defaultWidth: 390,
+      defaultHeight: 540,
+      routeOrView: 'calculator',
     },
   },
 }

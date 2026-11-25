@@ -37,6 +37,7 @@ import TerminalApp from "@/components/os/apps/TerminalApp";
 import NotesWidget from "@/components/os/widgets/NotesWidget";
 import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import TodoWidget from "@/components/os/widgets/TodoWidget";
+import CalculatorApp from "@/components/os/apps/CalculatorApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -234,6 +235,18 @@ export default function Home() {
                             defaultHeight={460}
                             >
                             <TerminalApp />
+                            </Window>
+                        )
+                    case 'calculator':
+                        return (
+                            <Window
+                            key="calculator"
+                            id="calculator"
+                            title="Calculator"
+                            defaultWidth={390}
+                            defaultHeight={540}
+                            >
+                            <CalculatorApp />
                             </Window>
                         )
                     default:
