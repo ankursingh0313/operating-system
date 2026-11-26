@@ -50,7 +50,7 @@ export async function GET() {
             }
           }
         }
-        repositories(orderBy: {field: UPDATED_AT, direction: DESC}, first: 20) {
+        repositories(orderBy: {field: UPDATED_AT, direction: DESC}, first: 100) {
           nodes {
             id
             name
@@ -118,6 +118,15 @@ export async function GET() {
         language: repo.primaryLanguage?.name || null,
         private: repo.isPrivate,
       })),
+      languageUsage: (apiUser.repositories?.nodes ?? []).reduce(
+        (acc: Record<string, number>, repo: GraphQLRepositoryNode) => {
+          const key = repo.primaryLanguage?.name?.trim();
+          if (key) {
+            acc[key] = (acc[key] ?? 0) + 1;
+          }
+          return acc;
+        }, {}
+      ),
     })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
