@@ -859,78 +859,75 @@ export default function GitHubProfileApp() {
                             Pinned Repositories
                         </h3>
 
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 ">
-                            {repos.map((repo) => (
-                                <a
-                                    key={repo.id}
-                                    href={repo.html_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`p-4 rounded-xl border transition flex flex-col justify-between gap-3 group h-36 ${panelBg} ${repoHoverClass} ${surface.borderSubtle}`}
-                                >
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex justify-between items-start">
-                                            <span
-                                                className="text-xs font-semibold group-hover:underline truncate max-w-[180px]"
-                                                style={{ color: theme.rgb }}
-                                            >
-                                                {repo.name}
-                                            </span>
-                                            <span
-                                                className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${surface.border} ${surface.textMuted}`}
-                                            >
-                                                {repo.private
-                                                    ? "Private"
-                                                    : "Public"}
-                                            </span>
-                                        </div>
-                                        <p
-                                            className={`text-xs line-clamp-2 ${surface.textMuted}`}
-                                        >
-                                            {repo.description ||
-                                                "No description available."}
-                                        </p>
-                                    </div>
+                        <div
+    className="flex-1 grid gap-3"
+    style={{
+        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    }}
+>
+    {repos.map((repo) => (
+        <a
+            key={repo.id}
+            href={repo.html_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`p-4 rounded-xl border transition flex flex-col justify-between gap-3 group min-h-36 min-w-0 ${panelBg} ${repoHoverClass} ${surface.borderSubtle}`}
+        >
+            <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex justify-between items-start gap-2">
+                    <span
+                        className="text-xs font-semibold group-hover:underline truncate min-w-0"
+                        style={{ color: theme.rgb }}
+                    >
+                        {repo.name}
+                    </span>
+                    <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${surface.border} ${surface.textMuted}`}
+                    >
+                        {repo.private ? "Private" : "Public"}
+                    </span>
+                </div>
+                <p
+                    className={`text-xs line-clamp-2 ${surface.textMuted}`}
+                >
+                    {repo.description || "No description available."}
+                </p>
+            </div>
 
-                                    <div
-                                        className={`flex items-center justify-between text-[11px] font-mono ${surface.textMuted}`}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            {repo.language && (
-                                                <span className="flex items-center gap-1">
-                                                    <span
-                                                        className="w-2 h-2 rounded-full inline-block"
-                                                        style={{
-                                                            backgroundColor:
-                                                                LANGUAGE_COLORS[
-                                                                    repo
-                                                                        .language
-                                                                ] ??
-                                                                "#fbbf24",
-                                                        }}
-                                                    />
-                                                    {repo.language}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {repo.stargazers_count > 0 && (
-                                            <span
-                                                className={`inline-flex items-center gap-1 ${
-                                                    isLight
-                                                        ? "text-amber-600"
-                                                        : "text-amber-300"
-                                                }`}
-                                            >
-                                                <span>
-                                                    {repo.stargazers_count}
-                                                </span>
-                                                <IoIosStar className="w-3.5 h-3.5 shrink-0" />
-                                            </span>
-                                        )}
-                                    </div>
-                                </a>
-                            ))}
-                        </div>
+            <div
+                className={`flex items-center justify-between text-[11px] font-mono ${surface.textMuted}`}
+            >
+                <div className="flex items-center gap-2 min-w-0">
+                    {repo.language && (
+                        <span className="flex items-center gap-1 truncate">
+                            <span
+                                className="w-2 h-2 rounded-full inline-block shrink-0"
+                                style={{
+                                    backgroundColor:
+                                        LANGUAGE_COLORS[repo.language] ??
+                                        "#fbbf24",
+                                }}
+                            />
+                            <span className="truncate">{repo.language}</span>
+                        </span>
+                    )}
+                </div>
+                {repo.stargazers_count > 0 && (
+                    <span
+                        className={`inline-flex items-center gap-1 shrink-0 ${
+                            isLight
+                                ? "text-amber-600"
+                                : "text-amber-300"
+                        }`}
+                    >
+                        <span>{repo.stargazers_count}</span>
+                        <IoIosStar className="w-3.5 h-3.5 shrink-0" />
+                    </span>
+                )}
+            </div>
+        </a>
+    ))}
+</div>
                     </div>
                 </div>
             </div>
