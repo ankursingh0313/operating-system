@@ -262,16 +262,14 @@ export default function CustomCursor() {
         aria-hidden="true"
         className="fixed top-0 left-0 pointer-events-none z-[100000] transition-[width,height,opacity,box-shadow,filter] duration-150 ease-out"
         style={{
-          width: `${sizePx}px`,
-          height: `${sizePx}px`,
+          width: `${isResizeHover ? resizeCornerSize : sizePx}px`,
+          height: `${isResizeHover ? resizeCornerSize : sizePx}px`,
           ...(isResizeHover
             ? {
                 backgroundColor: 'transparent',
                 border: 'none',
                 borderBottom: `${resizeCornerThickness}px solid ${theme.rgb}`,
                 borderRight: `${resizeCornerThickness}px solid ${theme.rgb}`,
-                width: `${resizeCornerSize}px`,
-                height: `${resizeCornerSize}px`,
                 borderRadius: '0px',
                 boxShadow: 'none',
                 filter: isResizing

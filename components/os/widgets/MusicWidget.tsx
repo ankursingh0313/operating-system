@@ -129,11 +129,17 @@ export default function MusicWidget() {
         [],
     );
 
+    type IterableDirectoryHandle = FileSystemDirectoryHandle & {
+        entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+    };
+
     const collectFilesFromHandle = async (
         dirHandle: FileSystemDirectoryHandle,
     ): Promise<File[]> => {
         const collected: File[] = [];
-        for await (const [, handle] of dirHandle.entries()) {
+        for await (const [, handle] of (
+            dirHandle as IterableDirectoryHandle
+        ).entries()) {
             if (handle.kind === "file") {
                 const file = await (handle as FileSystemFileHandle).getFile();
                 collected.push(file);
