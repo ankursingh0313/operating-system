@@ -206,18 +206,18 @@ export default function GitHubLanguageRadar({
     ? 'bg-white/80 border-slate-200/90 shadow-lg'
     : 'bg-[#12161f]/80 border-white/10 shadow-xl'
   const innerInsetBg = isLight
-    ? 'bg-slate-100/50 border-slate-200/70'
-    : 'bg-black/30 border-white/[0.07]'
+    ? 'bg-slate-100/10 border-slate-200/70'
+    : 'bg-black/20 border-white/[0.07]'
 
   return (
     <div
-      className={`w-full rounded-2xl backdrop-blur-xl p-4 flex flex-col gap-1 select-none transition-colors duration-200 ${surface.textPrimary} `}
+      className={`w-[280px] rounded-2xl backdrop-blur-xl p-0 flex flex-col gap-1 select-none transition-colors duration-200 ${surface.textPrimary} overflow-hidden`}
       style={{
         boxShadow: `0 12px 28px -8px rgba(0, 0, 0, ${isLight ? '0.12' : '0.45'}), 0 0 20px -4px rgba(${accentRgbClean}, 0.14)`,
       }}
     >
       {/* Header */}
-      <div className="flex items-center text-[11px] font-mono truncate ${surface.textMuted} justify-between">
+      <div className="flex items-center text-[11px] px-4 pt-2 font-mono truncate ${surface.textMuted} justify-between">
         <div>{languagePoints.length} languages </div>
         <div>{totalReposCount} repos</div>
       </div>
@@ -367,30 +367,7 @@ export default function GitHubLanguageRadar({
         )}
       </div>
 
-      {/* Compact Top Language Pills */}
-      {languagePoints.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {languagePoints.slice(0, 5).map((lang) => (
-            <span
-              key={lang.name}
-              onMouseEnter={() => setHoveredLang(lang)}
-              onMouseLeave={() => setHoveredLang(null)}
-              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono transition cursor-default ${
-                isLight
-                  ? 'bg-slate-100/90 border-slate-200'
-                  : 'bg-white/[0.04] border-white/10'
-              }`}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: lang.color }}
-              />
-              <span className={surface.textPrimary}>{lang.name}</span>
-              <span className={surface.textPrimary}>{lang.count}</span>
-            </span>
-          ))}
-        </div>
-      )}
+      
     </div>
   )
 }

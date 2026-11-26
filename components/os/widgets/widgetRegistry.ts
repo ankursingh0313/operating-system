@@ -73,7 +73,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     previewTitle: 'GitHub Language Radar',
     previewSubtitle: 'GitHub Widget',
     defaultOpen: true,
-    defaultPos: { x: 1000, y: 380, xRatio: 0.75, yRatio: 0.5 },
+    defaultPos: { x: 1000, y: 380, xRatio: 0.5, yRatio: 0.5 },
     component: GitHubLanguageRadar,
   },
   notes: {
