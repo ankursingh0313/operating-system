@@ -111,6 +111,17 @@ function renderAppIcon(iconKey: AppIconKey) {
                     priority
                 />
             );
+        case "resume":
+            return (
+                <Image
+                    className="select-none object-contain w-10 h-10 sm:w-12 sm:h-12"
+                    src="/icons/resume.png"
+                    alt="Resume"
+                    width={48}
+                    height={48}
+                    priority
+                />
+            );
         case "apps":
         default:
             return <FaThLarge className="w-6 h-6" />;

@@ -39,6 +39,7 @@ import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import TodoWidget from "@/components/os/widgets/TodoWidget";
 import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
+import ResumeViewerApp from "@/components/os/apps/ResumeViewerApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -254,6 +255,18 @@ export default function Home() {
                             defaultHeight={540}
                             >
                             <CalculatorApp />
+                            </Window>
+                        )
+                    case 'resume':
+                        return (
+                            <Window
+                            key="resume"
+                            id="resume"
+                            title="Resume"
+                            defaultWidth={800}
+                            defaultHeight={600}
+                            >
+                            <ResumeViewerApp />
                             </Window>
                         )
                     default:

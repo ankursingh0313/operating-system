@@ -38,6 +38,10 @@ const UNPINNED_APP_META: Record<string, { name: string; icon: string }> = {
     name: 'Calculator',
     icon: '/icons/calculator-4.png',
   },
+  resume: {
+    name: 'Resume',
+    icon: '/icons/resume.png',
+  },
 }
 
 const LEAVE_COLLAPSE_DELAY_MS = 1000
