@@ -111,7 +111,7 @@ export default function GitHubProfileApp() {
         const size = 240;
         const cx = size / 2;
         const cy = size / 2;
-        const radius = 68;
+        const radius = 88;
         const labelRadius = radius + 22;
         const axes = languagePoints.slice(0, 8);
         const count = axes.length;
@@ -203,10 +203,10 @@ export default function GitHubProfileApp() {
 
     const chartGeometry = useMemo(() => {
         const width = 320;
-        const height = 136;
-        const padX = 10;
-        const padTop = 14;
-        const padBottom = 18;
+        const height = 200;
+        const padX = 0;
+        const padTop = 0;
+        const padBottom = 0;
         const innerW = width - padX * 2;
         const innerH = height - padTop - padBottom;
 
@@ -371,6 +371,15 @@ export default function GitHubProfileApp() {
                     {user.bio ||
                         "Full-stack software developer specializing in MERN stack, Web3 systems, and high-throughput backend architecture."}
                 </p>
+                <div
+                    className={`flex items-center gap-2 text-xs  pt-4 ${surface.textMuted} `}
+                >
+                    <span className="flex items-center gap-1">
+                        <IoMdPeople /> {user.followers} followers
+                    </span>
+                    <span>·</span>
+                    <span>{user.following} following</span>
+                </div>
 
                 <a
                     href={user.html_url}
@@ -381,45 +390,15 @@ export default function GitHubProfileApp() {
                     View on GitHub <MdArrowOutward className="text-sm" />
                 </a>
 
-                <div
-                    className={`flex items-center gap-2 text-xs border-t pt-4 ${surface.textMuted} ${surface.borderSubtle}`}
-                >
-                    <span className="flex items-center gap-1">
-                        <IoMdPeople /> {user.followers} followers
-                    </span>
-                    <span>·</span>
-                    <span>{user.following} following</span>
-                </div>
-
                 {/* Language Spider Graph in Left Panel Below Followers & Following (Fullscreen Mode) */}
                 {isFullscreen && (
                     <div
-                        className={`p-3.5 rounded-xl border flex flex-col gap-2.5 shadow-lg ${panelBg} ${surface.borderSubtle}`}
+                        className={`p-0 pt-3 border flex flex-col border-0  border-t ${surface.borderSubtle} overflow-clip`}
                     >
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                            <div>
-                                <span
-                                    className={`font-medium block ${surface.textPrimary}`}
-                                >
-                                    Language Usage
-                                </span>
-                                <span
-                                    className={`text-[10px] font-mono ${surface.textMuted}`}
-                                >
-                                    {languagePoints.length} languages ·{" "}
-                                    {totalRepoLanguages} total
-                                </span>
-                            </div>
-                            <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
-                                style={{ color: theme.rgb }}
-                            >
-                                {spiderGeometry.vertices.length}
-                            </span>
-                        </div>
+                       
 
                         <div
-                            className={`relative w-full h-[188px] rounded-lg border p-1.5 flex items-center justify-center ${insetBg} ${surface.borderSubtle}`}
+                            className={`relative w-full h-[200px] flex items-center justify-center ${insetBg} border-none`}
                         >
                             {hoveredLang && (
                                 <div
@@ -444,7 +423,7 @@ export default function GitHubProfileApp() {
                             {spiderGeometry.vertices.length >= 3 ? (
                                 <svg
                                     viewBox={`0 0 ${spiderGeometry.size} ${spiderGeometry.size}`}
-                                    className="w-full h-full max-w-[230px] block overflow-visible"
+                                    className="w-full h-full max-h-[200px] block overflow-visible"
                                     onMouseLeave={() => setHoveredLang(null)}
                                 >
                                     <defs>
