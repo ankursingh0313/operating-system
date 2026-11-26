@@ -38,6 +38,7 @@ import NotesWidget from "@/components/os/widgets/NotesWidget";
 import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import TodoWidget from "@/components/os/widgets/TodoWidget";
 import CalculatorApp from "@/components/os/apps/CalculatorApp";
+import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -125,6 +126,12 @@ export default function Home() {
                         return (
                             <DraggableWidget key="git" id="git">
                                 <GitWidget />
+                            </DraggableWidget>
+                        );
+                    case "gitLanguageRadar":
+                        return (
+                            <DraggableWidget key="gitLanguageRadar" id="gitLanguageRadar">
+                                <GitHubLanguageRadar />
                             </DraggableWidget>
                         );
                     case "notes":

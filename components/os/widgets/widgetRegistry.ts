@@ -4,6 +4,7 @@ import MusicWidget from '@/components/os/widgets/MusicWidget'
 import GitWidget from '@/components/os/widgets/GitWidget'
 import NotesWidget from '@/components/os/widgets/NotesWidget'
 import TodoWidget from './TodoWidget'
+import GitHubLanguageRadar from './GitHubLanguageRadar'
 
 export interface WidgetPosition {
   x: number
@@ -64,6 +65,16 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: true,
     defaultPos: { x: 1000, y: 380, xRatio: 0.75, yRatio: 0.5 },
     component: GitWidget,
+  },
+  gitLanguageRadar: {
+    id: 'gitLanguageRadar',
+    name: 'GitHub Language Radar',
+    label: 'GitHub Language Radar',
+    previewTitle: 'GitHub Language Radar',
+    previewSubtitle: 'GitHub Widget',
+    defaultOpen: true,
+    defaultPos: { x: 1000, y: 380, xRatio: 0.75, yRatio: 0.5 },
+    component: GitHubLanguageRadar,
   },
   notes: {
     id: 'notes',

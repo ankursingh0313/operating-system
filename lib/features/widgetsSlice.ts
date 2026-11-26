@@ -19,7 +19,7 @@ const DEFAULT_WIDGETS: Record<string, WidgetConfig> = {
   clock: { id: 'clock', x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05, isOpen: true, zIndex: 1 },
   music: { id: 'music', x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25, isOpen: true, zIndex: 2 },
   git: { id: 'git', x: 1000, y: 380, xRatio: 0.75, yRatio: 0.50, isOpen: true, zIndex: 3 },
-  notes: { id: 'notes', x: 1000, y: 570, xRatio: 0.75, yRatio: 0.75, isOpen: true, zIndex: 4 },
+  gitLanguageRadar: { id: 'gitLanguageRadar', x: 1000, y: 570, xRatio: 0.75, yRatio: 0.75, isOpen: true, zIndex: 4 },
   todo: { id: 'todo', x: 1000, y: 760, xRatio: 0.75, yRatio: 0.85, isOpen: true, zIndex: 5 },
 };
 
