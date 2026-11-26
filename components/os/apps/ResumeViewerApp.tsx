@@ -115,7 +115,7 @@ export default function ResumeViewerApp() {
     >
       {/* Top Action & Export Toolbar */}
       <div
-        className={`shrink-0 px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 ${surface.headerBg} ${surface.borderSubtle}`}
+        className={`shrink-0 px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 ${surface.subtleBg} ${surface.borderSubtle}`}
       >
         {/* Left: Document Title & Metadata */}
         <div className="flex items-center gap-2.5 min-w-0">
