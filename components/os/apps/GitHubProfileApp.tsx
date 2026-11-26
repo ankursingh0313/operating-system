@@ -94,31 +94,16 @@ export default function GitHubProfileApp() {
             (data as (GitHubData & { languageUsage?: Record<string, number> }) | null)
                 ?.languageUsage ?? {};
 
-        const entries = Object.entries(rawMap).filter(
-            ([name, count]) => Boolean(name?.trim()) && Number(count) > 0,
-        );
-
-        // Fallback if languageUsage isn't populated yet, derive from repos
-        const resolvedEntries =
-            entries.length > 0
-                ? entries
-                : Object.entries(
-                      (data?.repos ?? []).reduce<Record<string, number>>(
-                          (acc, repo) => {
-                              const key = repo.language?.trim();
-                              if (key) acc[key] = (acc[key] ?? 0) + 1;
-                              return acc;
-                          },
-                          {},
-                      ),
-                  );
-
-        return resolvedEntries
-            .map(([name, count]) => ({
-                name: name.trim(),
-                count: Number(count),
-                color: LANGUAGE_COLORS[name.trim()] ?? theme.rgb,
-            }))
+        return Object.entries(rawMap)
+            .filter(([name, count]) => Boolean(name?.trim()) && Number(count) > 0)
+            .map(([name, count]) => {
+                const cleanName = name.trim();
+                return {
+                    name: cleanName,
+                    count: Number(count),
+                    color: LANGUAGE_COLORS[cleanName] ?? theme.rgb,
+                };
+            })
             .sort((a, b) => b.count - a.count);
     }, [data, theme.rgb]);
 
@@ -126,7 +111,7 @@ export default function GitHubProfileApp() {
         const size = 240;
         const cx = size / 2;
         const cy = size / 2;
-        const radius = 74;
+        const radius = 68;
         const labelRadius = radius + 22;
         const axes = languagePoints.slice(0, 8);
         const count = axes.length;
@@ -352,8 +337,8 @@ export default function GitHubProfileApp() {
         <div
             className={`flex flex-col md:flex-row h-full p-4 md:p-6 gap-6 overflow-hidden transition-colors duration-200 ${shellBg} ${surface.textPrimary}`}
         >
-            {/* Left Sidebar: Profile Card */}
-            <div className="flex flex-col w-full md:w-72 shrink-0 gap-4 overflow-y-auto">
+            {/* Left Sidebar: Profile Card + Fullscreen Language Spider Graph */}
+            <div className="flex flex-col w-full md:w-72 shrink-0 gap-4 overflow-y-auto pr-1">
                 <div className="relative">
                     <img
                         src={user.avatar_url}
@@ -405,18 +390,207 @@ export default function GitHubProfileApp() {
                     <span>·</span>
                     <span>{user.following} following</span>
                 </div>
+
+                {/* Language Spider Graph in Left Panel Below Followers & Following (Fullscreen Mode) */}
+                {isFullscreen && (
+                    <div
+                        className={`p-3.5 rounded-xl border flex flex-col gap-2.5 shadow-lg ${panelBg} ${surface.borderSubtle}`}
+                    >
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                            <div>
+                                <span
+                                    className={`font-medium block ${surface.textPrimary}`}
+                                >
+                                    Language Usage
+                                </span>
+                                <span
+                                    className={`text-[10px] font-mono ${surface.textMuted}`}
+                                >
+                                    {languagePoints.length} languages ·{" "}
+                                    {totalRepoLanguages} total
+                                </span>
+                            </div>
+                            <span
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
+                                style={{ color: theme.rgb }}
+                            >
+                                {spiderGeometry.vertices.length}
+                            </span>
+                        </div>
+
+                        <div
+                            className={`relative w-full h-[188px] rounded-lg border p-1.5 flex items-center justify-center ${insetBg} ${surface.borderSubtle}`}
+                        >
+                            {hoveredLang && (
+                                <div
+                                    className={`pointer-events-none absolute z-10 px-2 py-1 rounded border text-[10px] font-mono shadow-md whitespace-nowrap ${panelBg} ${surface.border} ${surface.textPrimary}`}
+                                    style={{
+                                        top: "6px",
+                                        right: "6px",
+                                    }}
+                                >
+                                    <span
+                                        className="inline-block w-2 h-2 rounded-full mr-1.5"
+                                        style={{
+                                            backgroundColor:
+                                                hoveredLang.lang.color,
+                                        }}
+                                    />
+                                    <strong>{hoveredLang.lang.name}</strong>:{" "}
+                                    {hoveredLang.lang.count}
+                                </div>
+                            )}
+
+                            {spiderGeometry.vertices.length >= 3 ? (
+                                <svg
+                                    viewBox={`0 0 ${spiderGeometry.size} ${spiderGeometry.size}`}
+                                    className="w-full h-full max-w-[230px] block overflow-visible"
+                                    onMouseLeave={() => setHoveredLang(null)}
+                                >
+                                    <defs>
+                                        <radialGradient
+                                            id={spiderFillId}
+                                            cx="50%"
+                                            cy="50%"
+                                            r="55%"
+                                        >
+                                            <stop
+                                                offset="0%"
+                                                stopColor={theme.rgb}
+                                                stopOpacity="0.42"
+                                            />
+                                            <stop
+                                                offset="100%"
+                                                stopColor={theme.rgb}
+                                                stopOpacity="0.12"
+                                            />
+                                        </radialGradient>
+                                    </defs>
+
+                                    {spiderGeometry.rings.map((pts, idx) => (
+                                        <polygon
+                                            key={idx}
+                                            points={pts}
+                                            fill="none"
+                                            stroke={
+                                                isLight
+                                                    ? "rgba(15,23,42,0.14)"
+                                                    : "rgba(255,255,255,0.12)"
+                                            }
+                                            strokeWidth="1"
+                                        />
+                                    ))}
+
+                                    {spiderGeometry.spokes.map((spoke) => (
+                                        <g key={spoke.lang.name}>
+                                            <line
+                                                x1={spiderGeometry.cx}
+                                                y1={spiderGeometry.cy}
+                                                x2={spoke.x}
+                                                y2={spoke.y}
+                                                stroke={
+                                                    isLight
+                                                        ? "rgba(15,23,42,0.14)"
+                                                        : "rgba(255,255,255,0.12)"
+                                                }
+                                                strokeWidth="1"
+                                            />
+                                            <text
+                                                x={spoke.lx}
+                                                y={spoke.ly}
+                                                textAnchor={spoke.anchor}
+                                                dominantBaseline="central"
+                                                className="text-[8.5px] font-mono"
+                                                fill={
+                                                    isLight
+                                                        ? "#475569"
+                                                        : "#9ca3af"
+                                                }
+                                            >
+                                                {spoke.lang.name} (
+                                                {spoke.lang.count})
+                                            </text>
+                                        </g>
+                                    ))}
+
+                                    <polygon
+                                        points={spiderGeometry.polygonPoints}
+                                        fill={`url(#${spiderFillId})`}
+                                        stroke={theme.rgb}
+                                        strokeWidth="1.75"
+                                        strokeLinejoin="round"
+                                    />
+
+                                    {spiderGeometry.vertices.map((v) => {
+                                        const active =
+                                            hoveredLang?.lang.name ===
+                                            v.lang.name;
+                                        return (
+                                            <g
+                                                key={v.lang.name}
+                                                className="cursor-pointer"
+                                                onMouseEnter={() =>
+                                                    setHoveredLang({
+                                                        lang: v.lang,
+                                                        x: v.x,
+                                                        y: v.y,
+                                                    })
+                                                }
+                                            >
+                                                <circle
+                                                    cx={v.x}
+                                                    cy={v.y}
+                                                    r={active ? "4.5" : "3"}
+                                                    fill={v.lang.color}
+                                                    stroke={
+                                                        isLight
+                                                            ? "#ffffff"
+                                                            : "#0d1117"
+                                                    }
+                                                    strokeWidth="1.25"
+                                                />
+                                                <circle
+                                                    cx={v.x}
+                                                    cy={v.y}
+                                                    r="9"
+                                                    fill="transparent"
+                                                />
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
+                            ) : (
+                                <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
+                                    {languagePoints.map((lang) => (
+                                        <span
+                                            key={lang.name}
+                                            className={`px-2 py-1 rounded border ${surface.borderSubtle}`}
+                                        >
+                                            {lang.name}: {lang.count}
+                                        </span>
+                                    ))}
+                                    {languagePoints.length === 0 && (
+                                        <span className={surface.textMuted}>
+                                            No language usage data
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Right Main Content Area */}
             <div className="flex-1 overflow-y-auto pr-2">
                 <div className="flex flex-col gap-6 shrink-0">
-                    {/* Contribution Calendar + Fullscreen Analytics Row */}
+                    {/* Contribution Calendar + Fullscreen Line Chart Row */}
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 shrink-0">
                         {/* Contribution Calendar Heatmap Card */}
                         <div
                             className={`${
                                 isFullscreen
-                                    ? "xl:col-span-6"
+                                    ? "xl:col-span-7"
                                     : "xl:col-span-12"
                             } p-4 rounded-xl border flex flex-col justify-between gap-3 shadow-lg ${panelBg} ${surface.borderSubtle}`}
                         >
@@ -517,384 +691,182 @@ export default function GitHubProfileApp() {
                             </div>
                         </div>
 
-                        {/* Right Side Charts: Only Visible When GitHub Window Is Fullscreen */}
+                        {/* Right Side Line Chart: Only Visible When GitHub Window Is Fullscreen */}
                         {isFullscreen && (
-                            <div className="xl:col-span-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                {/* Weekly Trend Line Chart */}
-                                <div
-                                    className={`p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-lg ${panelBg} ${surface.borderSubtle}`}
-                                >
-                                    <div className="flex items-center justify-between gap-2 text-xs">
-                                        <div>
-                                            <span
-                                                className={`font-medium block ${surface.textPrimary}`}
-                                            >
-                                                Weekly Trend
-                                            </span>
-                                            <span
-                                                className={`text-[10px] font-mono ${surface.textMuted}`}
-                                            >
-                                                Avg {avgWeekly}/wk · Peak{" "}
-                                                {peakWeekly}/wk
-                                            </span>
-                                        </div>
+                            <div
+                                className={`xl:col-span-5 p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-lg ${panelBg} ${surface.borderSubtle}`}
+                            >
+                                <div className="flex items-center justify-between gap-2 text-xs">
+                                    <div>
                                         <span
-                                            className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
-                                            style={{ color: theme.rgb }}
+                                            className={`font-medium block ${surface.textPrimary}`}
                                         >
-                                            {weeklyPoints.length}w
+                                            Weekly Trend
+                                        </span>
+                                        <span
+                                            className={`text-[10px] font-mono ${surface.textMuted}`}
+                                        >
+                                            Avg {avgWeekly}/wk · Peak{" "}
+                                            {peakWeekly}/wk
                                         </span>
                                     </div>
-
-                                    <div
-                                        className={`relative w-full h-[148px] rounded-lg border p-2 ${insetBg} ${surface.borderSubtle}`}
+                                    <span
+                                        className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
+                                        style={{ color: theme.rgb }}
                                     >
-                                        {hoveredPoint && (
-                                            <div
-                                                className={`pointer-events-none absolute z-10 px-2 py-1 rounded border text-[10px] font-mono shadow-md whitespace-nowrap ${panelBg} ${surface.border} ${surface.textPrimary}`}
-                                                style={{
-                                                    left: `${Math.min(72, Math.max(8, hoveredPoint.xPct))}%`,
-                                                    top: "6px",
-                                                }}
-                                            >
-                                                <span style={{ color: theme.rgb }}>
-                                                    {hoveredPoint.point.total}
-                                                </span>{" "}
-                                                commits · {hoveredPoint.point.label}
-                                            </div>
-                                        )}
-
-                                        <svg
-                                            viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`}
-                                            preserveAspectRatio="none"
-                                            className="w-full h-full block overflow-visible"
-                                            onMouseLeave={() =>
-                                                setHoveredPoint(null)
-                                            }
-                                        >
-                                            <defs>
-                                                <linearGradient
-                                                    id={gradientId}
-                                                    x1="0"
-                                                    y1="0"
-                                                    x2="0"
-                                                    y2="1"
-                                                >
-                                                    <stop
-                                                        offset="0%"
-                                                        stopColor={theme.rgb}
-                                                        stopOpacity="0.35"
-                                                    />
-                                                    <stop
-                                                        offset="100%"
-                                                        stopColor={theme.rgb}
-                                                        stopOpacity="0.0"
-                                                    />
-                                                </linearGradient>
-                                            </defs>
-
-                                            <line
-                                                x1="10"
-                                                x2={chartGeometry.width - 10}
-                                                y1={chartGeometry.height - 18}
-                                                y2={chartGeometry.height - 18}
-                                                stroke={
-                                                    isLight
-                                                        ? "rgba(15,23,42,0.1)"
-                                                        : "rgba(255,255,255,0.08)"
-                                                }
-                                                strokeWidth="1"
-                                            />
-                                            <line
-                                                x1="10"
-                                                x2={chartGeometry.width - 10}
-                                                y1="14"
-                                                y2="14"
-                                                stroke={
-                                                    isLight
-                                                        ? "rgba(15,23,42,0.08)"
-                                                        : "rgba(255,255,255,0.05)"
-                                                }
-                                                strokeDasharray="3 3"
-                                                strokeWidth="1"
-                                            />
-
-                                            {chartGeometry.areaPath && (
-                                                <path
-                                                    d={chartGeometry.areaPath}
-                                                    fill={`url(#${gradientId})`}
-                                                />
-                                            )}
-
-                                            {chartGeometry.linePath && (
-                                                <path
-                                                    d={chartGeometry.linePath}
-                                                    fill="none"
-                                                    stroke={theme.rgb}
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            )}
-
-                                            {chartGeometry.coords.map((c) => {
-                                                const colW =
-                                                    chartGeometry.coords.length > 1
-                                                        ? (chartGeometry.width -
-                                                              20) /
-                                                          chartGeometry.coords
-                                                              .length
-                                                        : 12;
-                                                const isHovered =
-                                                    hoveredPoint?.point.index ===
-                                                    c.point.index;
-
-                                                return (
-                                                    <g key={c.point.index}>
-                                                        {isHovered && (
-                                                            <circle
-                                                                cx={c.x}
-                                                                cy={c.y}
-                                                                r="3.5"
-                                                                fill={theme.rgb}
-                                                                stroke={
-                                                                    isLight
-                                                                        ? "#f1f5f9"
-                                                                        : "#0d1117"
-                                                                }
-                                                                strokeWidth="1.5"
-                                                            />
-                                                        )}
-                                                        <rect
-                                                            x={c.x - colW / 2}
-                                                            y={0}
-                                                            width={Math.max(
-                                                                4,
-                                                                colW,
-                                                            )}
-                                                            height={
-                                                                chartGeometry.height
-                                                            }
-                                                            fill="transparent"
-                                                            className="cursor-crosshair"
-                                                            onMouseEnter={() =>
-                                                                setHoveredPoint({
-                                                                    point: c.point,
-                                                                    xPct:
-                                                                        (c.x /
-                                                                            chartGeometry.width) *
-                                                                        100,
-                                                                    yPct:
-                                                                        (c.y /
-                                                                            chartGeometry.height) *
-                                                                        100,
-                                                                })
-                                                            }
-                                                        />
-                                                    </g>
-                                                );
-                                            })}
-                                        </svg>
-                                    </div>
+                                        {weeklyPoints.length}w
+                                    </span>
                                 </div>
 
-                                {/* Language Usage Spider / Radar Graph */}
                                 <div
-                                    className={`p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-lg ${panelBg} ${surface.borderSubtle}`}
+                                    className={`relative w-full h-[112px] rounded-lg border p-2 ${insetBg} ${surface.borderSubtle}`}
                                 >
-                                    <div className="flex items-center justify-between gap-2 text-xs">
-                                        <div>
-                                            <span
-                                                className={`font-medium block ${surface.textPrimary}`}
-                                            >
-                                                Language Radar
-                                            </span>
-                                            <span
-                                                className={`text-[10px] font-mono ${surface.textMuted}`}
-                                            >
-                                                {languagePoints.length} languages ·{" "}
-                                                {totalRepoLanguages} repos
-                                            </span>
-                                        </div>
-                                        <span
-                                            className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${surface.borderSubtle}`}
-                                            style={{ color: theme.rgb }}
+                                    {hoveredPoint && (
+                                        <div
+                                            className={`pointer-events-none absolute z-10 px-2 py-1 rounded border text-[10px] font-mono shadow-md whitespace-nowrap ${panelBg} ${surface.border} ${surface.textPrimary}`}
+                                            style={{
+                                                left: `${Math.min(72, Math.max(8, hoveredPoint.xPct))}%`,
+                                                top: "6px",
+                                            }}
                                         >
-                                            Top {spiderGeometry.vertices.length}
-                                        </span>
-                                    </div>
+                                            <span style={{ color: theme.rgb }}>
+                                                {hoveredPoint.point.total}
+                                            </span>{" "}
+                                            commits · {hoveredPoint.point.label}
+                                        </div>
+                                    )}
 
-                                    <div
-                                        className={`relative w-full h-[148px] rounded-lg border p-1.5 flex items-center justify-center ${insetBg} ${surface.borderSubtle}`}
+                                    <svg
+                                        viewBox={`0 0 ${chartGeometry.width} ${chartGeometry.height}`}
+                                        preserveAspectRatio="none"
+                                        className="w-full h-full block overflow-visible"
+                                        onMouseLeave={() =>
+                                            setHoveredPoint(null)
+                                        }
                                     >
-                                        {hoveredLang && (
-                                            <div
-                                                className={`pointer-events-none absolute z-10 px-2 py-1 rounded border text-[10px] font-mono shadow-md whitespace-nowrap ${panelBg} ${surface.border} ${surface.textPrimary}`}
-                                                style={{
-                                                    top: "6px",
-                                                    right: "8px",
-                                                }}
+                                        <defs>
+                                            <linearGradient
+                                                id={gradientId}
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
                                             >
-                                                <span
-                                                    className="inline-block w-2 h-2 rounded-full mr-1.5"
-                                                    style={{
-                                                        backgroundColor:
-                                                            hoveredLang.lang.color,
-                                                    }}
+                                                <stop
+                                                    offset="0%"
+                                                    stopColor={theme.rgb}
+                                                    stopOpacity="0.35"
                                                 />
-                                                <strong>{hoveredLang.lang.name}</strong>:{" "}
-                                                {hoveredLang.lang.count}
-                                            </div>
+                                                <stop
+                                                    offset="100%"
+                                                    stopColor={theme.rgb}
+                                                    stopOpacity="0.0"
+                                                />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <line
+                                            x1="10"
+                                            x2={chartGeometry.width - 10}
+                                            y1={chartGeometry.height - 18}
+                                            y2={chartGeometry.height - 18}
+                                            stroke={
+                                                isLight
+                                                    ? "rgba(15,23,42,0.1)"
+                                                    : "rgba(255,255,255,0.08)"
+                                            }
+                                            strokeWidth="1"
+                                        />
+                                        <line
+                                            x1="10"
+                                            x2={chartGeometry.width - 10}
+                                            y1="14"
+                                            y2="14"
+                                            stroke={
+                                                isLight
+                                                    ? "rgba(15,23,42,0.08)"
+                                                    : "rgba(255,255,255,0.05)"
+                                            }
+                                            strokeDasharray="3 3"
+                                            strokeWidth="1"
+                                        />
+
+                                        {chartGeometry.areaPath && (
+                                            <path
+                                                d={chartGeometry.areaPath}
+                                                fill={`url(#${gradientId})`}
+                                            />
                                         )}
 
-                                        {spiderGeometry.vertices.length >= 3 ? (
-                                            <svg
-                                                viewBox={`0 0 ${spiderGeometry.size} ${spiderGeometry.size}`}
-                                                className="w-full h-full max-w-[210px] block overflow-visible"
-                                                onMouseLeave={() =>
-                                                    setHoveredLang(null)
-                                                }
-                                            >
-                                                <defs>
-                                                    <radialGradient
-                                                        id={spiderFillId}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        r="55%"
-                                                    >
-                                                        <stop
-                                                            offset="0%"
-                                                            stopColor={theme.rgb}
-                                                            stopOpacity="0.42"
-                                                        />
-                                                        <stop
-                                                            offset="100%"
-                                                            stopColor={theme.rgb}
-                                                            stopOpacity="0.12"
-                                                        />
-                                                    </radialGradient>
-                                                </defs>
+                                        {chartGeometry.linePath && (
+                                            <path
+                                                d={chartGeometry.linePath}
+                                                fill="none"
+                                                stroke={theme.rgb}
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        )}
 
-                                                {/* Concentric Spider Web Rings */}
-                                                {spiderGeometry.rings.map(
-                                                    (pts, idx) => (
-                                                        <polygon
-                                                            key={idx}
-                                                            points={pts}
-                                                            fill="none"
+                                        {chartGeometry.coords.map((c) => {
+                                            const colW =
+                                                chartGeometry.coords.length > 1
+                                                    ? (chartGeometry.width -
+                                                          20) /
+                                                      chartGeometry.coords
+                                                          .length
+                                                    : 12;
+                                            const isHovered =
+                                                hoveredPoint?.point.index ===
+                                                c.point.index;
+
+                                            return (
+                                                <g key={c.point.index}>
+                                                    {isHovered && (
+                                                        <circle
+                                                            cx={c.x}
+                                                            cy={c.y}
+                                                            r="3.5"
+                                                            fill={theme.rgb}
                                                             stroke={
                                                                 isLight
-                                                                    ? "rgba(15,23,42,0.14)"
-                                                                    : "rgba(255,255,255,0.12)"
+                                                                    ? "#f1f5f9"
+                                                                    : "#0d1117"
                                                             }
-                                                            strokeWidth="1"
+                                                            strokeWidth="1.5"
                                                         />
-                                                    ),
-                                                )}
-
-                                                {/* Axis Spokes + Labels */}
-                                                {spiderGeometry.spokes.map(
-                                                    (spoke) => (
-                                                        <g key={spoke.lang.name}>
-                                                            <line
-                                                                x1={spiderGeometry.cx}
-                                                                y1={spiderGeometry.cy}
-                                                                x2={spoke.x}
-                                                                y2={spoke.y}
-                                                                stroke={
-                                                                    isLight
-                                                                        ? "rgba(15,23,42,0.14)"
-                                                                        : "rgba(255,255,255,0.12)"
-                                                                }
-                                                                strokeWidth="1"
-                                                            />
-                                                            <text
-                                                                x={spoke.lx}
-                                                                y={spoke.ly}
-                                                                textAnchor={spoke.anchor}
-                                                                dominantBaseline="central"
-                                                                className="text-[9px] font-mono"
-                                                                fill={
-                                                                    isLight
-                                                                        ? "#475569"
-                                                                        : "#9ca3af"
-                                                                }
-                                                            >
-                                                                {spoke.lang.name}
-                                                            </text>
-                                                        </g>
-                                                    ),
-                                                )}
-
-                                                {/* Data Polygon */}
-                                                <polygon
-                                                    points={spiderGeometry.polygonPoints}
-                                                    fill={`url(#${spiderFillId})`}
-                                                    stroke={theme.rgb}
-                                                    strokeWidth="1.75"
-                                                    strokeLinejoin="round"
-                                                />
-
-                                                {/* Interactive Vertices */}
-                                                {spiderGeometry.vertices.map(
-                                                    (v) => {
-                                                        const active =
-                                                            hoveredLang?.lang
-                                                                .name ===
-                                                            v.lang.name;
-                                                        return (
-                                                            <g
-                                                                key={v.lang.name}
-                                                                className="cursor-pointer"
-                                                                onMouseEnter={() =>
-                                                                    setHoveredLang({
-                                                                        lang: v.lang,
-                                                                        x: v.x,
-                                                                        y: v.y,
-                                                                    })
-                                                                }
-                                                            >
-                                                                <circle
-                                                                    cx={v.x}
-                                                                    cy={v.y}
-                                                                    r={active ? "4.5" : "3"}
-                                                                    fill={v.lang.color}
-                                                                    stroke={
-                                                                        isLight
-                                                                            ? "#ffffff"
-                                                                            : "#0d1117"
-                                                                    }
-                                                                    strokeWidth="1.25"
-                                                                />
-                                                                <circle
-                                                                    cx={v.x}
-                                                                    cy={v.y}
-                                                                    r="9"
-                                                                    fill="transparent"
-                                                                />
-                                                            </g>
-                                                        );
-                                                    },
-                                                )}
-                                            </svg>
-                                        ) : (
-                                            <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
-                                                {languagePoints.map((lang) => (
-                                                    <span
-                                                        key={lang.name}
-                                                        className={`px-2 py-1 rounded border ${surface.borderSubtle}`}
-                                                    >
-                                                        {lang.name}: {lang.count}
-                                                    </span>
-                                                ))}
-                                                {languagePoints.length === 0 && (
-                                                    <span className={surface.textMuted}>
-                                                        No language data
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                                    )}
+                                                    <rect
+                                                        x={c.x - colW / 2}
+                                                        y={0}
+                                                        width={Math.max(
+                                                            4,
+                                                            colW,
+                                                        )}
+                                                        height={
+                                                            chartGeometry.height
+                                                        }
+                                                        fill="transparent"
+                                                        className="cursor-crosshair"
+                                                        onMouseEnter={() =>
+                                                            setHoveredPoint({
+                                                                point: c.point,
+                                                                xPct:
+                                                                    (c.x /
+                                                                        chartGeometry.width) *
+                                                                    100,
+                                                                yPct:
+                                                                    (c.y /
+                                                                        chartGeometry.height) *
+                                                                    100,
+                                                            })
+                                                        }
+                                                    />
+                                                </g>
+                                            );
+                                        })}
+                                    </svg>
                                 </div>
                             </div>
                         )}
