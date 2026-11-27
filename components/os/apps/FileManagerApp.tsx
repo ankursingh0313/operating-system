@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useAppSelector } from '@/lib/hooks'
 import { COLOR_PACKAGES, getSurfacePackage } from '@/lib/themes/colorPackages'
+import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import {
   FaFolder,
   FaFileAlt,
@@ -23,6 +24,12 @@ import {
   FaDownload,
   FaExternalLinkAlt,
   FaChevronRight,
+  FaSearchPlus,
+  FaSearchMinus,
+  FaUndo,
+  FaChevronLeft,
+  FaExpand,
+  FaCompress,
 } from 'react-icons/fa'
 
 // Easily extend this array in the future (e.g., 'md', 'json', 'png', 'mp3')
@@ -44,8 +51,46 @@ interface FSNode {
   updatedAt: string
 }
 
+// Structured DOCX AST nodes for clean rich-document rendering
+interface DocxRun {
+  text: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+}
+
+type DocxBlock =
+  | {
+      kind: 'paragraph'
+      style: 'title' | 'h1' | 'h2' | 'h3' | 'body'
+      isList?: boolean
+      runs: DocxRun[]
+    }
+  | {
+      kind: 'table'
+      rows: DocxRun[][][] // rows -> cells -> runs
+    }
+
 const USER_DRIVE_STORAGE_KEY = 'dossier_os_user_drive_v1'
 const MAX_USER_DRIVE_BYTES = 3 * 1024 * 1024 // 3 MB cap to prevent lag & quota errors
+const PDF_WORKER_SRC_URL = '/pdf.worker.min.mjs'
+
+export const FILE_MANAGER_OPEN_EVENT = 'dossier:file-manager-open'
+export const FILE_MANAGER_PENDING_KEY = 'dossier_os_fm_pending_node'
+
+/**
+ * Optional helper: call from Desktop/Profile shortcuts before opening File Manager
+ * to jump straight to a specific file (e.g., 'admin-resume-pdf').
+ */
+export function openNodeInFileManager(nodeId: string) {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(FILE_MANAGER_PENDING_KEY, nodeId)
+  } catch {
+    // Ignore storage errors
+  }
+  window.dispatchEvent(new CustomEvent(FILE_MANAGER_OPEN_EVENT, { detail: nodeId }))
+}
 
 // Read-only Admin Drive contents
 const ADMIN_DRIVE_NODES: FSNode[] = [
@@ -87,7 +132,7 @@ const ADMIN_DRIVE_NODES: FSNode[] = [
     type: 'file',
     ext: 'txt',
     content:
-      'Welcome to DossierOS File Manager.\n\n- Admin Drive is read-only: you can browse, preview, and download files.\n- User Drive is your personal workspace: create folders, edit .txt files, upload .pdf/.docx/.txt files, rename, or delete items.\n\nAll User Drive changes are saved locally in your browser (3 MB limit).',
+      'Welcome to DossierOS File Manager.\n\n- Admin Drive is read-only: browse, preview PDF/DOCX/TXT documents, and download files.\n- User Drive is your personal workspace: create folders, edit .txt files, upload .pdf/.docx/.txt files, rename, or delete items.\n\nAll User Drive changes are saved locally in your browser (3 MB limit).',
     size: '1 KB',
     updatedAt: 'Nov 2026',
   },
@@ -140,10 +185,780 @@ function formatNow(): string {
   })
 }
 
+async function fetchFileBuffer(url: string, expectedLabel: string): Promise<ArrayBuffer> {
+  if (url.startsWith('data:')) {
+    const commaIdx = url.indexOf(',')
+    if (commaIdx === -1) throw new Error('Invalid embedded file data.')
+    const base64 = url.slice(commaIdx + 1)
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    return bytes.buffer
+  }
+
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) {
+    throw new Error(`${expectedLabel} file not found at ${url} (HTTP ${res.status})`)
+  }
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('text/html')) {
+    throw new Error(`Expected a ${expectedLabel} file at ${url}, but received HTML.`)
+  }
+  const buffer = await res.arrayBuffer()
+  if (buffer.byteLength === 0) {
+    throw new Error(`${expectedLabel} file is empty (0 bytes).`)
+  }
+  return buffer
+}
+
+/**
+ * Extracts word/document.xml from a .docx ZIP buffer using native browser APIs
+ * (zero external dependencies).
+ */
+async function extractDocxXml(buffer: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buffer)
+  const view = new DataView(buffer)
+
+  // Locate End of Central Directory (EOCD) signature 0x06054b50
+  let eocdOffset = -1
+  const minOffset = Math.max(0, bytes.length - 65557)
+  for (let i = bytes.length - 22; i >= minOffset; i -= 1) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocdOffset = i
+      break
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Invalid DOCX archive (missing directory header).')
+  }
+
+  const totalEntries = view.getUint16(eocdOffset + 10, true)
+  let ptr = view.getUint32(eocdOffset + 16, true)
+  const decoder = new TextDecoder('utf-8')
+
+  for (let entry = 0; entry < totalEntries; entry += 1) {
+    if (ptr + 46 > bytes.length || view.getUint32(ptr, true) !== 0x02014b50) {
+      break
+    }
+
+    const compressionMethod = view.getUint16(ptr + 10, true)
+    const compressedSize = view.getUint32(ptr + 20, true)
+    const fileNameLen = view.getUint16(ptr + 28, true)
+    const extraLen = view.getUint16(ptr + 30, true)
+    const commentLen = view.getUint16(ptr + 32, true)
+    const localHeaderOffset = view.getUint32(ptr + 42, true)
+
+    const fileName = decoder.decode(bytes.subarray(ptr + 46, ptr + 46 + fileNameLen))
+
+    if (fileName === 'word/document.xml') {
+      if (
+        localHeaderOffset + 30 > bytes.length ||
+        view.getUint32(localHeaderOffset, true) !== 0x04034b50
+      ) {
+        throw new Error('Corrupted DOCX entry header.')
+      }
+
+      const localNameLen = view.getUint16(localHeaderOffset + 26, true)
+      const localExtraLen = view.getUint16(localHeaderOffset + 28, true)
+      const dataStart = localHeaderOffset + 30 + localNameLen + localExtraLen
+      const compressedSlice = bytes.slice(dataStart, dataStart + compressedSize)
+
+      if (compressionMethod === 0) {
+        return decoder.decode(compressedSlice)
+      }
+
+      if (compressionMethod === 8) {
+        if (typeof DecompressionStream === 'undefined') {
+          throw new Error('Browser does not support DecompressionStream for DOCX.')
+        }
+        const ds = new DecompressionStream('deflate-raw')
+        const writer = ds.writable.getWriter()
+        writer.write(compressedSlice)
+        writer.close()
+        return await new Response(ds.readable).text()
+      }
+
+      throw new Error(`Unsupported DOCX compression method (${compressionMethod}).`)
+    }
+
+    ptr += 46 + fileNameLen + extraLen + commentLen
+  }
+
+  throw new Error('Could not find document content inside DOCX file.')
+}
+
+function parseDocxRuns(container: Element): DocxRun[] {
+  const runs: DocxRun[] = []
+  const children = Array.from(container.children)
+
+  for (const child of children) {
+    if (child.localName === 'hyperlink') {
+      runs.push(...parseDocxRuns(child))
+      continue
+    }
+    if (child.localName !== 'r') continue
+
+    let bold = false
+    let italic = false
+    let underline = false
+
+    const rPr = Array.from(child.children).find((c) => c.localName === 'rPr')
+    if (rPr) {
+      for (const prop of Array.from(rPr.children)) {
+        const val =
+          prop.getAttribute('w:val') ?? prop.getAttribute('val') ?? ''
+        const disabled = val === '0' || val === 'false' || val === 'none'
+        if (prop.localName === 'b' && !disabled) bold = true
+        if (prop.localName === 'i' && !disabled) italic = true
+        if (prop.localName === 'u' && !disabled) underline = true
+      }
+    }
+
+    let text = ''
+    for (const part of Array.from(child.children)) {
+      if (part.localName === 't') text += part.textContent ?? ''
+      else if (part.localName === 'br') text += '\n'
+      else if (part.localName === 'tab') text += '    '
+    }
+
+    if (text) {
+      runs.push({ text, bold, italic, underline })
+    }
+  }
+
+  return runs
+}
+
+function parseDocxParagraph(
+  pEl: Element
+): Extract<DocxBlock, { kind: 'paragraph' }> {
+  let style: 'title' | 'h1' | 'h2' | 'h3' | 'body' = 'body'
+  let isList = false
+
+  const pPr = Array.from(pEl.children).find((c) => c.localName === 'pPr')
+  if (pPr) {
+    for (const prop of Array.from(pPr.children)) {
+      if (prop.localName === 'pStyle') {
+        const val = (
+          prop.getAttribute('w:val') ??
+          prop.getAttribute('val') ??
+          ''
+        ).toLowerCase()
+        if (val.includes('title')) style = 'title'
+        else if (val.includes('heading1') || val === '1') style = 'h1'
+        else if (val.includes('heading2') || val === '2') style = 'h2'
+        else if (val.includes('heading3') || val === '3') style = 'h3'
+      } else if (prop.localName === 'numPr') {
+        isList = true
+      }
+    }
+  }
+
+  return {
+    kind: 'paragraph',
+    style,
+    isList,
+    runs: parseDocxRuns(pEl),
+  }
+}
+
+function parseDocxXml(xmlString: string): DocxBlock[] {
+  const parser = new DOMParser()
+  const xmlDoc = parser.parseFromString(xmlString, 'application/xml')
+  const parseError = xmlDoc.querySelector('parsererror')
+  if (parseError) {
+    throw new Error('Failed to parse DOCX XML content.')
+  }
+
+  const body = Array.from(xmlDoc.documentElement.children).find(
+    (c) => c.localName === 'body'
+  )
+  if (!body) return []
+
+  const blocks: DocxBlock[] = []
+
+  for (const child of Array.from(body.children)) {
+    if (child.localName === 'p') {
+      blocks.push(parseDocxParagraph(child))
+    } else if (child.localName === 'tbl') {
+      const rows: DocxRun[][][] = []
+      for (const tr of Array.from(child.children)) {
+        if (tr.localName !== 'tr') continue
+        const rowCells: DocxRun[][] = []
+        for (const tc of Array.from(tr.children)) {
+          if (tc.localName !== 'tc') continue
+          const cellRuns: DocxRun[] = []
+          const paragraphs = Array.from(tc.children).filter(
+            (c) => c.localName === 'p'
+          )
+          paragraphs.forEach((p, idx) => {
+            if (idx > 0) cellRuns.push({ text: '\n' })
+            cellRuns.push(...parseDocxRuns(p))
+          })
+          rowCells.push(cellRuns)
+        }
+        if (rowCells.length > 0) rows.push(rowCells)
+      }
+      if (rows.length > 0) {
+        blocks.push({ kind: 'table', rows })
+      }
+    }
+  }
+
+  return blocks
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       Inline PDF Canvas Previewer                          */
+/* -------------------------------------------------------------------------- */
+interface InlinePdfPreviewProps {
+  url: string
+  themeRgb: string
+  isLight: boolean
+  toolbarBtnClass: string
+  subtleBg: string
+  borderSubtle: string
+  textMuted: string
+  onDownload: () => void
+}
+
+function InlinePdfPreview({
+  url,
+  themeRgb,
+  isLight,
+  toolbarBtnClass,
+  subtleBg,
+  borderSubtle,
+  textMuted,
+  onDownload,
+}: InlinePdfPreviewProps) {
+  const [zoom, setZoom] = useState(100)
+  const [pageNum, setPageNum] = useState(1)
+  const [numPages, setNumPages] = useState(0)
+  const [rendering, setRendering] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [stageWidth, setStageWidth] = useState(520)
+
+  const pdfDocRef = useRef<PDFDocumentProxy | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const stageRef = useRef<HTMLDivElement | null>(null)
+  const renderTaskRef = useRef<RenderTask | null>(null)
+
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+
+    const updateWidth = () => {
+      setStageWidth(Math.max(240, el.clientWidth - 24))
+    }
+
+    updateWidth()
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Load PDF document
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setRendering(true)
+      setError(null)
+      setNumPages(0)
+      setPageNum(1)
+
+      try {
+        const pdfjs = await import('pdfjs-dist')
+        pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC_URL
+
+        const buffer = await fetchFileBuffer(url, 'PDF')
+        if (cancelled) return
+
+        const loadingTask = pdfjs.getDocument({
+          data: new Uint8Array(buffer),
+        })
+        const doc = await loadingTask.promise
+        if (cancelled) {
+          await doc.cleanup()
+          return
+        }
+
+        pdfDocRef.current = doc
+        setNumPages(doc.numPages)
+        setPageNum(1)
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unable to load PDF file.')
+          setRendering(false)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel()
+        renderTaskRef.current = null
+      }
+      if (pdfDocRef.current) {
+        pdfDocRef.current.cleanup().catch(() => {})
+        pdfDocRef.current = null
+      }
+    }
+  }, [url, reloadKey])
+
+  // Render active page
+  useEffect(() => {
+    const doc = pdfDocRef.current
+    const canvas = canvasRef.current
+    if (!doc || !canvas || pageNum < 1 || pageNum > numPages) return
+
+    let cancelled = false
+
+    async function renderPage() {
+      if (!doc || !canvas) return
+      setRendering(true)
+
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel()
+        renderTaskRef.current = null
+      }
+
+      try {
+        const page = await doc.getPage(pageNum)
+        if (cancelled) return
+
+        const baseViewport = page.getViewport({ scale: 1 })
+        const fitScale = Math.min(stageWidth, 820) / baseViewport.width
+        const finalScale = fitScale * (zoom / 100)
+        const viewport = page.getViewport({ scale: finalScale })
+
+        const dpr =
+          typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        canvas.width = Math.floor(viewport.width * dpr)
+        canvas.height = Math.floor(viewport.height * dpr)
+        canvas.style.width = `${Math.floor(viewport.width)}px`
+        canvas.style.height = `${Math.floor(viewport.height)}px`
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+        const task = page.render({
+          canvas,
+          canvasContext: ctx,
+          viewport,
+        })
+        renderTaskRef.current = task
+        await task.promise
+
+        if (!cancelled) setRendering(false)
+      } catch (err: unknown) {
+        if (
+          !cancelled &&
+          !(err instanceof Error && err.name === 'RenderingCancelledException')
+        ) {
+          setError('Failed to render PDF page.')
+          setRendering(false)
+        }
+      }
+    }
+
+    renderPage()
+
+    return () => {
+      cancelled = true
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel()
+      }
+    }
+  }, [pageNum, numPages, zoom, stageWidth])
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* PDF Controls Bar */}
+      <div
+        className={`shrink-0 px-3 py-1.5 border-b flex flex-wrap items-center justify-between gap-1.5 ${subtleBg} ${borderSubtle}`}
+      >
+        <div className="flex items-center gap-1">
+          {numPages > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setPageNum((p) => Math.max(1, p - 1))}
+                disabled={pageNum <= 1}
+                title="Previous Page"
+                className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer disabled:opacity-40 ${toolbarBtnClass}`}
+              >
+                <FaChevronLeft className="w-2.5 h-2.5" />
+              </button>
+              <span className="px-1.5 text-[10px] font-mono">
+                {pageNum}/{numPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPageNum((p) => Math.min(numPages, p + 1))}
+                disabled={pageNum >= numPages}
+                title="Next Page"
+                className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer disabled:opacity-40 ${toolbarBtnClass}`}
+              >
+                <FaChevronRight className="w-2.5 h-2.5" />
+              </button>
+            </>
+          ) : (
+            <span className={`text-[10px] font-mono ${textMuted}`}>
+              {numPages === 1 ? '1 Page · PDF' : 'Loading PDF...'}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(60, z - 15))}
+            title="Zoom Out"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaSearchMinus className="w-2.5 h-2.5" />
+          </button>
+          <span className="px-1.5 text-[10px] font-mono min-w-[40px] text-center">
+            {zoom}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(180, z + 15))}
+            title="Zoom In"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaSearchPlus className="w-2.5 h-2.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom(100)}
+            title="Reset Zoom"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaUndo className="w-2.5 h-2.5" />
+          </button>
+          {!url.startsWith('data:') && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open in New Tab"
+              className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+            >
+              <FaExternalLinkAlt className="w-2.5 h-2.5" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Canvas Stage */}
+      <div
+        ref={stageRef}
+        className={`flex-1 min-h-0 p-3 overflow-auto flex items-start justify-center ${
+          isLight ? 'bg-slate-200/75' : 'bg-[#090c10]'
+        }`}
+      >
+        {error ? (
+          <div
+            className={`max-w-sm w-full my-auto rounded-2xl border p-5 text-center flex flex-col items-center gap-2.5 ${subtleBg} ${borderSubtle}`}
+          >
+            <FaFilePdf className="w-8 h-8 text-rose-400" />
+            <p className="text-xs font-semibold">Unable to Render PDF</p>
+            <p className={`text-[11px] leading-relaxed ${textMuted}`}>{error}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => setReloadKey((k) => k + 1)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-medium cursor-pointer ${toolbarBtnClass}`}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={onDownload}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white cursor-pointer"
+                style={{ backgroundColor: themeRgb }}
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative flex items-center justify-center my-auto">
+            {rendering && (
+              <div
+                className={`absolute inset-0 z-10 rounded-xl flex items-center justify-center backdrop-blur-[2px] ${
+                  isLight ? 'bg-white/60' : 'bg-black/40'
+                }`}
+              >
+                <div
+                  className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+                  style={{
+                    borderColor: isLight
+                      ? 'rgba(15,23,42,0.15)'
+                      : 'rgba(255,255,255,0.15)',
+                    borderTopColor: themeRgb,
+                  }}
+                />
+              </div>
+            )}
+            <canvas
+              ref={canvasRef}
+              className="rounded-xl shadow-2xl bg-white block max-w-full"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       Inline DOCX Document Previewer                       */
+/* -------------------------------------------------------------------------- */
+interface InlineDocxPreviewProps {
+  url: string
+  themeRgb: string
+  isLight: boolean
+  toolbarBtnClass: string
+  subtleBg: string
+  borderSubtle: string
+  textMuted: string
+  onDownload: () => void
+}
+
+function InlineDocxPreview({
+  url,
+  themeRgb,
+  isLight,
+  toolbarBtnClass,
+  subtleBg,
+  borderSubtle,
+  textMuted,
+  onDownload,
+}: InlineDocxPreviewProps) {
+  const [blocks, setBlocks] = useState<DocxBlock[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [zoom, setZoom] = useState(100)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDocx() {
+      setLoading(true)
+      setError(null)
+      try {
+        const buffer = await fetchFileBuffer(url, 'DOCX')
+        const xml = await extractDocxXml(buffer)
+        const parsed = parseDocxXml(xml)
+        if (!cancelled) {
+          setBlocks(parsed)
+          setLoading(false)
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Unable to preview DOCX file.'
+          )
+          setLoading(false)
+        }
+      }
+    }
+
+    loadDocx()
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+
+  const renderRuns = (runs: DocxRun[]) => {
+    if (runs.length === 0) return <br />
+    return runs.map((run, i) => (
+      <span
+        key={i}
+        className={[
+          run.bold ? 'font-bold' : '',
+          run.italic ? 'italic' : '',
+          run.underline ? 'underline' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {run.text}
+      </span>
+    ))
+  }
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* DOCX Controls Bar */}
+      <div
+        className={`shrink-0 px-3 py-1.5 border-b flex items-center justify-between gap-2 ${subtleBg} ${borderSubtle}`}
+      >
+        <span className={`text-[10px] font-mono ${textMuted}`}>
+          Word Document Preview
+        </span>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(75, z - 10))}
+            title="Decrease Text Scale"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaSearchMinus className="w-2.5 h-2.5" />
+          </button>
+          <span className="px-1.5 text-[10px] font-mono min-w-[40px] text-center">
+            {zoom}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(150, z + 10))}
+            title="Increase Text Scale"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaSearchPlus className="w-2.5 h-2.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom(100)}
+            title="Reset Scale"
+            className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${toolbarBtnClass}`}
+          >
+            <FaUndo className="w-2.5 h-2.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Document Sheet Stage */}
+      <div
+        className={`flex-1 min-h-0 p-3 sm:p-4 overflow-auto flex justify-center ${
+          isLight ? 'bg-slate-200/75' : 'bg-[#090c10]'
+        }`}
+      >
+        {loading ? (
+          <div className="my-auto flex flex-col items-center gap-2">
+            <div
+              className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+              style={{
+                borderColor: isLight
+                  ? 'rgba(15,23,42,0.15)'
+                  : 'rgba(255,255,255,0.15)',
+                borderTopColor: themeRgb,
+              }}
+            />
+            <span className={`text-xs font-mono ${textMuted}`}>
+              Rendering DOCX...
+            </span>
+          </div>
+        ) : error ? (
+          <div
+            className={`max-w-sm w-full my-auto rounded-2xl border p-5 text-center flex flex-col items-center gap-2.5 ${subtleBg} ${borderSubtle}`}
+          >
+            <FaFileWord className="w-8 h-8 text-sky-400" />
+            <p className="text-xs font-semibold">Unable to Preview DOCX</p>
+            <p className={`text-[11px] leading-relaxed ${textMuted}`}>{error}</p>
+            <button
+              type="button"
+              onClick={onDownload}
+              className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white cursor-pointer"
+              style={{ backgroundColor: themeRgb }}
+            >
+              Download DOCX
+            </button>
+          </div>
+        ) : (
+          <div
+            className="w-full max-w-[740px] h-fit rounded-xl bg-white text-slate-900 shadow-2xl p-5 sm:p-8 space-y-2.5 select-text"
+            style={{ fontSize: `${(13 * zoom) / 100}px` }}
+          >
+            {blocks.length === 0 ? (
+              <p className="text-slate-400 italic text-xs">
+                (Document has no readable text)
+              </p>
+            ) : (
+              blocks.map((block, idx) => {
+                if (block.kind === 'table') {
+                  return (
+                    <div key={idx} className="overflow-x-auto my-2">
+                      <table className="w-full border-collapse border border-slate-200 text-left">
+                        <tbody>
+                          {block.rows.map((row, rIdx) => (
+                            <tr key={rIdx} className="border-b border-slate-200">
+                              {row.map((cellRuns, cIdx) => (
+                                <td
+                                  key={cIdx}
+                                  className="p-2 border-r border-slate-200 align-top whitespace-pre-wrap leading-snug"
+                                >
+                                  {renderRuns(cellRuns)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                }
+
+                const headingClass =
+                  block.style === 'title'
+                    ? 'text-[1.5em] font-bold tracking-tight text-slate-950 pb-1 border-b border-slate-200'
+                    : block.style === 'h1'
+                      ? 'text-[1.28em] font-bold text-slate-950 pt-2'
+                      : block.style === 'h2'
+                        ? 'text-[1.12em] font-bold text-slate-900 pt-1.5'
+                        : block.style === 'h3'
+                          ? 'text-[1.02em] font-semibold text-slate-800 pt-1'
+                          : 'leading-relaxed text-slate-800'
+
+                if (block.isList) {
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-start gap-2 pl-3 ${headingClass}`}
+                    >
+                      <span className="select-none text-slate-500">•</span>
+                      <div className="flex-1 whitespace-pre-wrap">
+                        {renderRuns(block.runs)}
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <p key={idx} className={`whitespace-pre-wrap ${headingClass}`}>
+                    {renderRuns(block.runs)}
+                  </p>
+                )
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            Main File Manager App                           */
+/* -------------------------------------------------------------------------- */
 export default function FileManagerApp() {
   const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
   const [isCompact, setIsCompact] = useState(false)
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false)
 
   const [activeDrive, setActiveDrive] = useState<DriveId>('admin')
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
@@ -179,18 +994,78 @@ export default function FileManagerApp() {
     return () => observer.disconnect()
   }, [])
 
+  // Jump directly to a specific file when requested externally (e.g., Resume shortcut)
+  const navigateToNodeId = useCallback((nodeId: string, currentUserNodes: FSNode[]) => {
+    const adminNode = ADMIN_DRIVE_NODES.find((n) => n.id === nodeId)
+    if (adminNode) {
+      setActiveDrive('admin')
+      if (adminNode.type === 'folder') {
+        setCurrentFolderId(adminNode.id)
+        setSelectedFile(null)
+      } else {
+        setCurrentFolderId(adminNode.parentId)
+        setSelectedFile(adminNode)
+        setEditorText(adminNode.content ?? '')
+      }
+      return
+    }
+
+    const userNode = currentUserNodes.find((n) => n.id === nodeId)
+    if (userNode) {
+      setActiveDrive('user')
+      if (userNode.type === 'folder') {
+        setCurrentFolderId(userNode.id)
+        setSelectedFile(null)
+      } else {
+        setCurrentFolderId(userNode.parentId)
+        setSelectedFile(userNode)
+        setEditorText(userNode.content ?? '')
+      }
+    }
+  }, [])
+
   useEffect(() => {
     setIsMounted(true)
+    let loadedUserNodes = DEFAULT_USER_NODES
     try {
       const saved = localStorage.getItem(USER_DRIVE_STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed)) setUserNodes(parsed)
+        if (Array.isArray(parsed)) {
+          loadedUserNodes = parsed
+          setUserNodes(parsed)
+        }
       }
     } catch {
       // Fallback to default user nodes
     }
-  }, [])
+
+    try {
+      const pendingNodeId = sessionStorage.getItem(FILE_MANAGER_PENDING_KEY)
+      if (pendingNodeId) {
+        sessionStorage.removeItem(FILE_MANAGER_PENDING_KEY)
+        navigateToNodeId(pendingNodeId, loadedUserNodes)
+      }
+    } catch {
+      // Ignore
+    }
+  }, [navigateToNodeId])
+
+  useEffect(() => {
+    const handleExternalOpen = (e: Event) => {
+      const nodeId = (e as CustomEvent<string>).detail
+      if (!nodeId) return
+      try {
+        sessionStorage.removeItem(FILE_MANAGER_PENDING_KEY)
+      } catch {
+        // Ignore
+      }
+      navigateToNodeId(nodeId, userNodes)
+    }
+
+    window.addEventListener(FILE_MANAGER_OPEN_EVENT, handleExternalOpen)
+    return () => window.removeEventListener(FILE_MANAGER_OPEN_EVENT, handleExternalOpen)
+  }, [navigateToNodeId, userNodes])
 
   // Persist User Drive changes
   useEffect(() => {
@@ -259,10 +1134,15 @@ export default function FileManagerApp() {
     })
   }, [driveNodes, currentFolderId, searchQuery])
 
+  const closePreview = () => {
+    setSelectedFile(null)
+    setIsPreviewExpanded(false)
+  }
+
   const switchDrive = (drive: DriveId) => {
     setActiveDrive(drive)
     setCurrentFolderId(null)
-    setSelectedFile(null)
+    closePreview()
     setCreatingType(null)
     setRenamingId(null)
     setSearchQuery('')
@@ -271,7 +1151,7 @@ export default function FileManagerApp() {
   const handleOpenNode = (node: FSNode) => {
     if (node.type === 'folder') {
       setCurrentFolderId(node.id)
-      setSelectedFile(null)
+      closePreview()
       setSearchQuery('')
       return
     }
@@ -482,7 +1362,7 @@ export default function FileManagerApp() {
 
     setUserNodes((prev) => prev.filter((n) => !idsToDelete.has(n.id)))
     if (selectedFile && idsToDelete.has(selectedFile.id)) {
-      setSelectedFile(null)
+      closePreview()
     }
     showToast(`Deleted ${node.name}`)
   }
@@ -519,26 +1399,32 @@ export default function FileManagerApp() {
     ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-300/80 text-slate-800'
     : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-gray-200'
 
+  const useFullOverlay = isCompact || isPreviewExpanded
+
   const renderPreviewPanel = () => {
     if (!selectedFile) return null
+
+    const isRichDoc = selectedFile.ext === 'pdf' || selectedFile.ext === 'docx'
 
     return (
       <div
         className={
-          isCompact
+          useFullOverlay
             ? `absolute inset-0 z-20 flex flex-col overflow-hidden ${surface.appBg}`
-            : `w-80 md:w-96 shrink-0 border-l flex flex-col overflow-hidden ${surface.subtleBg} ${surface.borderSubtle}`
+            : `${
+                isRichDoc ? 'w-[54%] min-w-[340px] max-w-[660px]' : 'w-80 md:w-96'
+              } shrink-0 border-l flex flex-col overflow-hidden ${surface.subtleBg} ${surface.borderSubtle}`
         }
       >
         {/* Preview Header */}
         <div
-          className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
+          className={`shrink-0 px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
         >
           <div className="flex items-center gap-2 min-w-0">
-            {isCompact && (
+            {useFullOverlay && (
               <button
                 type="button"
-                onClick={() => setSelectedFile(null)}
+                onClick={closePreview}
                 title="Back to Files"
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium shrink-0 cursor-pointer ${btnClass}`}
               >
@@ -551,7 +1437,22 @@ export default function FileManagerApp() {
               {selectedFile.name}
             </span>
           </div>
+
           <div className="flex items-center gap-1 shrink-0">
+            {!isCompact && (
+              <button
+                type="button"
+                onClick={() => setIsPreviewExpanded((v) => !v)}
+                title={isPreviewExpanded ? 'Exit Full View' : 'Expand Document'}
+                className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
+              >
+                {isPreviewExpanded ? (
+                  <FaCompress className="w-3 h-3" />
+                ) : (
+                  <FaExpand className="w-3 h-3" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => handleDownloadFile(selectedFile)}
@@ -562,7 +1463,7 @@ export default function FileManagerApp() {
             </button>
             <button
               type="button"
-              onClick={() => setSelectedFile(null)}
+              onClick={closePreview}
               title="Close Document"
               className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
             >
@@ -572,9 +1473,31 @@ export default function FileManagerApp() {
         </div>
 
         {/* Preview Body */}
-        <div className="flex-1 min-h-0 p-3.5 flex flex-col overflow-auto">
-          {selectedFile.ext === 'txt' ? (
-            isReadOnly ? (
+        {selectedFile.ext === 'pdf' && selectedFile.url ? (
+          <InlinePdfPreview
+            url={selectedFile.url}
+            themeRgb={theme.rgb}
+            isLight={isLight}
+            toolbarBtnClass={btnClass}
+            subtleBg={surface.subtleBg}
+            borderSubtle={surface.borderSubtle}
+            textMuted={surface.textMuted}
+            onDownload={() => handleDownloadFile(selectedFile)}
+          />
+        ) : selectedFile.ext === 'docx' && selectedFile.url ? (
+          <InlineDocxPreview
+            url={selectedFile.url}
+            themeRgb={theme.rgb}
+            isLight={isLight}
+            toolbarBtnClass={btnClass}
+            subtleBg={surface.subtleBg}
+            borderSubtle={surface.borderSubtle}
+            textMuted={surface.textMuted}
+            onDownload={() => handleDownloadFile(selectedFile)}
+          />
+        ) : (
+          <div className="flex-1 min-h-0 p-3.5 flex flex-col overflow-auto">
+            {isReadOnly ? (
               <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed select-text">
                 {selectedFile.content || '(Empty file)'}
               </pre>
@@ -595,53 +1518,9 @@ export default function FileManagerApp() {
                   <span>Save Changes</span>
                 </button>
               </>
-            )
-          ) : (
-            <div className="my-auto flex flex-col items-center text-center gap-3 p-4">
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{
-                  backgroundColor: `rgba(${accentRgbClean}, 0.14)`,
-                }}
-              >
-                {renderIcon(selectedFile)}
-              </div>
-              <div>
-                <p className="text-xs font-semibold break-all">
-                  {selectedFile.name}
-                </p>
-                <p className={`text-[11px] font-mono mt-1 ${surface.textMuted}`}>
-                  {selectedFile.ext?.toUpperCase()} Document ·{' '}
-                  {selectedFile.size || 'Ready'}
-                </p>
-              </div>
-              {selectedFile.url && (
-                <div className="flex items-center gap-2 mt-1">
-                  {selectedFile.ext === 'pdf' && (
-                    <a
-                      href={selectedFile.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5"
-                      style={{ backgroundColor: theme.rgb }}
-                    >
-                      <span>Open PDF</span>
-                      <FaExternalLinkAlt className="w-2.5 h-2.5" />
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadFile(selectedFile)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${btnClass}`}
-                  >
-                    <FaDownload className="w-3 h-3" />
-                    <span>Download</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -837,7 +1716,7 @@ export default function FileManagerApp() {
               type="button"
               onClick={() => {
                 setCurrentFolderId(null)
-                setSelectedFile(null)
+                closePreview()
               }}
               className="px-1.5 py-1 rounded hover:underline font-semibold cursor-pointer"
             >
@@ -851,7 +1730,7 @@ export default function FileManagerApp() {
                   type="button"
                   onClick={() => {
                     setCurrentFolderId(crumb.id)
-                    setSelectedFile(null)
+                    closePreview()
                   }}
                   className="px-1 py-0.5 rounded hover:underline truncate max-w-[110px] cursor-pointer"
                 >
@@ -968,7 +1847,7 @@ export default function FileManagerApp() {
           </div>
         )}
 
-        {/* Split Body: File List + Desktop Preview Drawer */}
+        {/* Split Body: File List + Desktop Side Preview Drawer */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* File List */}
           <div className="flex-1 min-w-0 overflow-y-auto p-3 space-y-1">
@@ -1065,7 +1944,7 @@ export default function FileManagerApp() {
           </div>
 
           {/* Desktop Side Preview Drawer */}
-          {!isCompact && renderPreviewPanel()}
+          {!useFullOverlay && renderPreviewPanel()}
         </div>
 
         {/* Bottom Status Bar */}
@@ -1086,8 +1965,8 @@ export default function FileManagerApp() {
         </div>
       </div>
 
-      {/* Compact Full-App Takeover Preview Overlay */}
-      {isCompact && renderPreviewPanel()}
+      {/* Full-App Takeover Preview Overlay (Compact Mode or Expanded Desktop View) */}
+      {useFullOverlay && renderPreviewPanel()}
     </div>
   )
 }
