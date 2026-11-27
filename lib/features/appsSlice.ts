@@ -10,7 +10,6 @@ export type AppIconKey =
   | 'appearance'
   | 'terminal'
   | 'calculator'
-  | 'resume'
   | 'drives'
 
 export interface OSAppItem {
@@ -126,17 +125,6 @@ const initialState: AppsState = {
       defaultWidth: 390,
       defaultHeight: 540,
       routeOrView: 'calculator',
-    },
-    resume: {
-      id: 'resume',
-      title: 'Resume Builder',
-      description: 'Create and manage your professional resume.',
-      category: 'Personal',
-      iconKey: 'resume',
-      installed: true,
-      defaultWidth: 820,
-      defaultHeight: 620,
-      routeOrView: 'resume',
     },
     drives: {
       id: 'drives',

@@ -22,8 +22,6 @@ import MusicWidget from "@/components/os/widgets/MusicWidget";
 import GitWidget from "@/components/os/widgets/GitWidget";
 import Window from "@/components/os/Window";
 import IframeApp from "@/components/os/apps/IframeApp";
-import AppContent from "@/components/os/apps/AppContent";
-import GitHubClientApp from "@/components/os/apps/GitHubClientApp";
 import GitHubProfileApp from "@/components/os/apps/GitHubProfileApp";
 import AppearanceApp from "@/components/os/apps/AppearanceApp";
 import { openApp } from "@/lib/features/dockSlice";
@@ -39,7 +37,6 @@ import WidgetsApp from "@/components/os/apps/WidgetsApp";
 import TodoWidget from "@/components/os/widgets/TodoWidget";
 import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
-import ResumeViewerApp from "@/components/os/apps/ResumeViewerApp";
 import SystemInfo from "@/components/os/widgets/SystemInfo";
 import FileManagerApp from "@/components/os/apps/FileManagerApp";
 
@@ -261,18 +258,6 @@ export default function Home() {
                             defaultHeight={540}
                             >
                             <CalculatorApp />
-                            </Window>
-                        )
-                    case 'resume':
-                        return (
-                            <Window
-                            key="resume"
-                            id="resume"
-                            title="Resume"
-                            defaultWidth={800}
-                            defaultHeight={600}
-                            >
-                            <ResumeViewerApp />
                             </Window>
                         )
                     case 'drives':
