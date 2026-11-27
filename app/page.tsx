@@ -280,7 +280,7 @@ export default function Home() {
                             <Window
                             key="drives"
                             id="drives"
-                            title="Disk Drives"
+                            title="Disk"
                             defaultWidth={800}
                             defaultHeight={600}
                             >

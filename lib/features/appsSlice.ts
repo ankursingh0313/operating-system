@@ -140,7 +140,7 @@ const initialState: AppsState = {
     },
     drives: {
       id: 'drives',
-      title: 'Disk Drives',
+      title: 'Disk',
       description: 'File explorer, admin and user space to operate.',
       category: 'System',
       iconKey: 'drives',
