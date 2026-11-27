@@ -242,6 +242,7 @@ export default function WidgetsApp() {
                 <div
                   className={`flex items-center justify-between gap-1.5 pt-2 border-t shrink-0 ${surface.borderSubtle}`}
                 >
+                  {meta.isDraggable && ( <>
                   <button
                     type="button"
                     disabled={!config.isOpen}
@@ -262,7 +263,7 @@ export default function WidgetsApp() {
                     <FaUndo className="w-2.5 h-2.5 opacity-75" />
                     <span>Reset</span>
                   </button>
-
+                </>)}
                   <button
                     type="button"
                     onClick={(e) => {

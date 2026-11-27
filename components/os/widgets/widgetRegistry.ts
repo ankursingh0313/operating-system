@@ -23,6 +23,7 @@ export interface WidgetRegistryItem {
   defaultOpen: boolean
   defaultPos: WidgetPosition
   component: ComponentType
+  isDraggable?: boolean
 }
 
 const FALLBACK_WIDGET_ITEM: WidgetRegistryItem = {
@@ -34,6 +35,7 @@ const FALLBACK_WIDGET_ITEM: WidgetRegistryItem = {
   defaultOpen: false,
   defaultPos: { x: 1000, y: 200, xRatio: 0.75, yRatio: 0.3 },
   component: ClockWidget,
+  isDraggable: true,
 }
 
 export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
@@ -46,6 +48,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: true,
     defaultPos: { x: 1000, y: 40, xRatio: 0.75, yRatio: 0.05 },
     component: ClockWidget,
+    isDraggable: true,
   },
   music: {
     id: 'music',
@@ -53,9 +56,10 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     label: 'Audio Player',
     previewTitle: 'Audio Player',
     previewSubtitle: 'Desktop Media',
-    defaultOpen: true,
+    defaultOpen: false,
     defaultPos: { x: 1000, y: 190, xRatio: 0.75, yRatio: 0.25 },
     component: MusicWidget,
+    isDraggable: true,
   },
   git: {
     id: 'git',
@@ -66,6 +70,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: true,
     defaultPos: { x: 1000, y: 380, xRatio: 0.75, yRatio: 0.5 },
     component: GitWidget,
+    isDraggable: true,
   },
   gitLanguageRadar: {
     id: 'gitLanguageRadar',
@@ -76,6 +81,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: true,
     defaultPos: { x: 1000, y: 380, xRatio: 0.5, yRatio: 0.5 },
     component: GitHubLanguageRadar,
+    isDraggable: true,
   },
   notes: {
     id: 'notes',
@@ -86,6 +92,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: false,
     defaultPos: { x: 1000, y: 570, xRatio: 0.75, yRatio: 0.75 },
     component: NotesWidget,
+    isDraggable: true,
   },
   todo: {
     id: 'todo',
@@ -96,6 +103,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: false,
     defaultPos: { x: 1000, y: 760, xRatio: 0.75, yRatio: 0.85 },
     component: TodoWidget,
+    isDraggable: true,
   },
   system: {
     id: 'system',
