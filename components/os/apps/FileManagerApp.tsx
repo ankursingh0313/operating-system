@@ -44,6 +44,7 @@ interface FSNode {
 }
 
 const USER_DRIVE_STORAGE_KEY = 'dossier_os_user_drive_v1'
+const MAX_USER_DRIVE_BYTES = 3 * 1024 * 1024 // 3 MB cap to prevent lag & quota errors
 
 // Read-only Admin Drive contents
 const ADMIN_DRIVE_NODES: FSNode[] = [
@@ -85,7 +86,7 @@ const ADMIN_DRIVE_NODES: FSNode[] = [
     type: 'file',
     ext: 'txt',
     content:
-      'Welcome to DossierOS File Manager.\n\n- Admin Drive is read-only: you can browse, preview, and download files.\n- User Drive is your personal workspace: create folders, edit .txt files, upload .pdf/.docx/.txt files, rename, or delete items.\n\nAll User Drive changes are saved locally in your browser.',
+      'Welcome to DossierOS File Manager.\n\n- Admin Drive is read-only: you can browse, preview, and download files.\n- User Drive is your personal workspace: create folders, edit .txt files, upload .pdf/.docx/.txt files, rename, or delete items.\n\nAll User Drive changes are saved locally in your browser (3 MB limit).',
     size: '1 KB',
     updatedAt: 'Nov 2026',
   },
@@ -199,6 +200,20 @@ export default function FileManagerApp() {
   const isReadOnly = activeDrive === 'admin'
   const driveNodes = activeDrive === 'admin' ? ADMIN_DRIVE_NODES : userNodes
 
+  // Live User Drive storage calculation
+  const userDriveUsedBytes = useMemo(() => {
+    try {
+      return new Blob([JSON.stringify(userNodes)]).size
+    } catch {
+      return 0
+    }
+  }, [userNodes])
+
+  const usagePercent = Math.min(
+    100,
+    Math.round((userDriveUsedBytes / MAX_USER_DRIVE_BYTES) * 100)
+  )
+
   // Build breadcrumb trail from root to currentFolderId
   const breadcrumbs = useMemo(() => {
     const trail: FSNode[] = []
@@ -296,7 +311,13 @@ export default function FileManagerApp() {
             updatedAt: formatNow(),
           }
 
-    setUserNodes((prev) => [...prev, newNode])
+    const nextNodes = [...userNodes, newNode]
+    if (new Blob([JSON.stringify(nextNodes)]).size > MAX_USER_DRIVE_BYTES) {
+      showToast('User Drive is full. Delete items to free space.')
+      return
+    }
+
+    setUserNodes(nextNodes)
     setCreatingType(null)
     setNewName('')
 
@@ -307,7 +328,7 @@ export default function FileManagerApp() {
     showToast(`Created ${finalName}`)
   }
 
-  // Upload .txt, .pdf, or .docx into User Drive
+  // Upload .txt, .pdf, or .docx into User Drive (with strict quota check)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isReadOnly) return
     const files = Array.from(e.target.files || [])
@@ -318,6 +339,15 @@ export default function FileManagerApp() {
       const ext = getExtension(file.name)
       if (!ext) {
         showToast(`Unsupported file: ${file.name} (only .txt, .pdf, .docx)`)
+        return
+      }
+
+      // Quick pre-check before reading into memory (base64 adds ~33% overhead)
+      const estimatedBytes = ext === 'txt' ? file.size : Math.ceil(file.size * 1.37)
+      if (estimatedBytes > MAX_USER_DRIVE_BYTES) {
+        showToast(
+          `${file.name} exceeds the ${formatBytes(MAX_USER_DRIVE_BYTES)} disk limit.`
+        )
         return
       }
 
@@ -336,8 +366,23 @@ export default function FileManagerApp() {
           size: formatBytes(file.size),
           updatedAt: formatNow(),
         }
-        setUserNodes((prev) => [...prev, uploadedNode])
-        showToast(`Uploaded ${file.name}`)
+
+        let blocked = false
+        setUserNodes((prev) => {
+          const next = [...prev, uploadedNode]
+          const nextSize = new Blob([JSON.stringify(next)]).size
+          if (nextSize > MAX_USER_DRIVE_BYTES) {
+            blocked = true
+            return prev
+          }
+          return next
+        })
+
+        if (blocked) {
+          showToast('Not enough space on User Drive. Delete files to free space.')
+        } else {
+          showToast(`Uploaded ${file.name}`)
+        }
       }
 
       if (ext === 'txt') {
@@ -348,7 +393,7 @@ export default function FileManagerApp() {
     })
   }
 
-  // Save edited .txt file in User Drive
+  // Save edited .txt file in User Drive (with quota check)
   const handleSaveTextFile = () => {
     if (isReadOnly || !selectedFile || selectedFile.ext !== 'txt') return
     const updated: FSNode = {
@@ -357,7 +402,14 @@ export default function FileManagerApp() {
       size: formatBytes(new Blob([editorText]).size),
       updatedAt: formatNow(),
     }
-    setUserNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
+
+    const nextNodes = userNodes.map((n) => (n.id === updated.id ? updated : n))
+    if (new Blob([JSON.stringify(nextNodes)]).size > MAX_USER_DRIVE_BYTES) {
+      showToast('Save failed: User Drive storage limit reached.')
+      return
+    }
+
+    setUserNodes(nextNodes)
     setSelectedFile(updated)
     showToast('File saved')
   }
@@ -519,19 +571,52 @@ export default function FileManagerApp() {
           <span className="text-[9px] font-mono uppercase opacity-80">R/W</span>
         </button>
 
-        <div className="mt-auto pt-3 border-t border-current/10 px-2 space-y-1">
-          <div className={`text-[10px] font-mono ${surface.textMuted}`}>
-            Supported Types
+        {/* User Drive Storage Meter + Supported Types */}
+        <div className="mt-auto pt-3 border-t border-current/10 px-2 space-y-2.5">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-mono">
+              <span className={surface.textMuted}>User Disk</span>
+              <span className="font-semibold">{usagePercent}%</span>
+            </div>
+
+            <div
+              className={`w-full h-1.5 rounded-full overflow-hidden ${
+                isLight ? 'bg-slate-200' : 'bg-white/10'
+              }`}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${usagePercent}%`,
+                  backgroundColor:
+                    usagePercent >= 90
+                      ? '#f43f5e'
+                      : usagePercent >= 75
+                        ? '#f59e0b'
+                        : theme.rgb,
+                }}
+              />
+            </div>
+
+            <div className={`text-[10px] font-mono ${surface.textMuted}`}>
+              {formatBytes(userDriveUsedBytes)} / {formatBytes(MAX_USER_DRIVE_BYTES)}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {SUPPORTED_EXTENSIONS.map((ext) => (
-              <span
-                key={ext}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${surface.borderSubtle}`}
-              >
-                .{ext}
-              </span>
-            ))}
+
+          <div className="pt-2 border-t border-current/10 space-y-1">
+            <div className={`text-[10px] font-mono ${surface.textMuted}`}>
+              Supported Types
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {SUPPORTED_EXTENSIONS.map((ext) => (
+                <span
+                  key={ext}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${surface.borderSubtle}`}
+                >
+                  .{ext}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </aside>
@@ -901,7 +986,9 @@ export default function FileManagerApp() {
         >
           <span>
             {visibleItems.length} item{visibleItems.length === 1 ? '' : 's'} ·{' '}
-            {isReadOnly ? 'Admin Drive (View Only)' : 'User Drive (Local Storage)'}
+            {isReadOnly
+              ? 'Admin Drive (View Only)'
+              : `User Drive (${formatBytes(userDriveUsedBytes)} / ${formatBytes(MAX_USER_DRIVE_BYTES)})`}
           </span>
           {statusMsg && (
             <span style={{ color: theme.rgb }} className="font-semibold">

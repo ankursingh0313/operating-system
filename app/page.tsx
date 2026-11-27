@@ -41,6 +41,7 @@ import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
 import ResumeViewerApp from "@/components/os/apps/ResumeViewerApp";
 import SystemInfo from "@/components/os/widgets/SystemInfo";
+import FileManagerApp from "@/components/os/apps/FileManagerApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -272,6 +273,18 @@ export default function Home() {
                             defaultHeight={600}
                             >
                             <ResumeViewerApp />
+                            </Window>
+                        )
+                    case 'drives':
+                        return (
+                            <Window
+                            key="drives"
+                            id="drives"
+                            title="Disk Drives"
+                            defaultWidth={800}
+                            defaultHeight={600}
+                            >
+                            <FileManagerApp />
                             </Window>
                         )
                     default:

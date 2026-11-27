@@ -11,6 +11,7 @@ export type AppIconKey =
   | 'terminal'
   | 'calculator'
   | 'resume'
+  | 'drives'
 
 export interface OSAppItem {
   id: string
@@ -136,6 +137,17 @@ const initialState: AppsState = {
       defaultWidth: 820,
       defaultHeight: 620,
       routeOrView: 'resume',
+    },
+    drives: {
+      id: 'drives',
+      title: 'Disk Drives',
+      description: 'File explorer, admin and user space to operate.',
+      category: 'System',
+      iconKey: 'drives',
+      installed: true,
+      defaultWidth: 820,
+      defaultHeight: 620,
+      routeOrView: 'drives',
     },
   },
 }
