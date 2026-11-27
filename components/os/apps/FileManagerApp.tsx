@@ -18,6 +18,7 @@ import {
   FaSave,
   FaTimes,
   FaArrowUp,
+  FaArrowLeft,
   FaSearch,
   FaDownload,
   FaExternalLinkAlt,
@@ -142,6 +143,7 @@ function formatNow(): string {
 export default function FileManagerApp() {
   const { accent, mode, hydrated } = useAppSelector((state) => state.theme)
   const [isMounted, setIsMounted] = useState(false)
+  const [isCompact, setIsCompact] = useState(false)
 
   const [activeDrive, setActiveDrive] = useState<DriveId>('admin')
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
@@ -159,7 +161,23 @@ export default function FileManagerApp() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
 
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Track container width so narrow desktop windows AND mobile screens switch to compact mode
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const checkSize = () => {
+      setIsCompact(el.clientWidth < 720)
+    }
+
+    checkSize()
+    const observer = new ResizeObserver(checkSize)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     setIsMounted(true)
@@ -235,7 +253,6 @@ export default function FileManagerApp() {
       return n.parentId === currentFolderId
     })
 
-    // Sort folders first, then files alphabetically
     return [...list].sort((a, b) => {
       if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
       return a.name.localeCompare(b.name)
@@ -342,7 +359,6 @@ export default function FileManagerApp() {
         return
       }
 
-      // Quick pre-check before reading into memory (base64 adds ~33% overhead)
       const estimatedBytes = ext === 'txt' ? file.size : Math.ceil(file.size * 1.37)
       if (estimatedBytes > MAX_USER_DRIVE_BYTES) {
         showToast(
@@ -503,9 +519,139 @@ export default function FileManagerApp() {
     ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-300/80 text-slate-800'
     : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-gray-200'
 
+  const renderPreviewPanel = () => {
+    if (!selectedFile) return null
+
+    return (
+      <div
+        className={
+          isCompact
+            ? `absolute inset-0 z-20 flex flex-col overflow-hidden ${surface.appBg}`
+            : `w-80 md:w-96 shrink-0 border-l flex flex-col overflow-hidden ${surface.subtleBg} ${surface.borderSubtle}`
+        }
+      >
+        {/* Preview Header */}
+        <div
+          className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            {isCompact && (
+              <button
+                type="button"
+                onClick={() => setSelectedFile(null)}
+                title="Back to Files"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium shrink-0 cursor-pointer ${btnClass}`}
+              >
+                <FaArrowLeft className="w-3 h-3" />
+                <span>Back</span>
+              </button>
+            )}
+            {renderIcon(selectedFile)}
+            <span className="text-xs font-semibold truncate">
+              {selectedFile.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleDownloadFile(selectedFile)}
+              title="Download"
+              className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
+            >
+              <FaDownload className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedFile(null)}
+              title="Close Document"
+              className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
+            >
+              <FaTimes className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Preview Body */}
+        <div className="flex-1 min-h-0 p-3.5 flex flex-col overflow-auto">
+          {selectedFile.ext === 'txt' ? (
+            isReadOnly ? (
+              <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed select-text">
+                {selectedFile.content || '(Empty file)'}
+              </pre>
+            ) : (
+              <>
+                <textarea
+                  value={editorText}
+                  onChange={(e) => setEditorText(e.target.value)}
+                  className={`flex-1 w-full resize-none rounded-xl border p-3 text-xs font-mono leading-relaxed focus:outline-none select-text ${surface.appBg} ${surface.borderSubtle}`}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveTextFile}
+                  className="mt-2.5 w-full py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5 cursor-pointer hover:brightness-110"
+                  style={{ backgroundColor: theme.rgb }}
+                >
+                  <FaSave className="w-3.5 h-3.5" />
+                  <span>Save Changes</span>
+                </button>
+              </>
+            )
+          ) : (
+            <div className="my-auto flex flex-col items-center text-center gap-3 p-4">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{
+                  backgroundColor: `rgba(${accentRgbClean}, 0.14)`,
+                }}
+              >
+                {renderIcon(selectedFile)}
+              </div>
+              <div>
+                <p className="text-xs font-semibold break-all">
+                  {selectedFile.name}
+                </p>
+                <p className={`text-[11px] font-mono mt-1 ${surface.textMuted}`}>
+                  {selectedFile.ext?.toUpperCase()} Document ·{' '}
+                  {selectedFile.size || 'Ready'}
+                </p>
+              </div>
+              {selectedFile.url && (
+                <div className="flex items-center gap-2 mt-1">
+                  {selectedFile.ext === 'pdf' && (
+                    <a
+                      href={selectedFile.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5"
+                      style={{ backgroundColor: theme.rgb }}
+                    >
+                      <span>Open PDF</span>
+                      <FaExternalLinkAlt className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadFile(selectedFile)}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${btnClass}`}
+                  >
+                    <FaDownload className="w-3 h-3" />
+                    <span>Download</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      className={`h-full w-full flex overflow-hidden select-none transition-colors duration-200 ${surface.appBg} ${surface.textPrimary}`}
+      ref={containerRef}
+      className={`relative h-full w-full flex overflow-hidden select-none transition-colors duration-200 ${
+        isCompact ? 'flex-col' : 'flex-row'
+      } ${surface.appBg} ${surface.textPrimary}`}
     >
       {/* Hidden File Input for Uploads */}
       <input
@@ -517,109 +663,157 @@ export default function FileManagerApp() {
         className="hidden"
       />
 
-      {/* Left Sidebar: Drives */}
-      <aside
-        className={`w-44 sm:w-52 shrink-0 border-r p-3 flex flex-col gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
-      >
-        <span
-          className={`px-2 text-[10px] font-mono font-semibold uppercase tracking-widest ${surface.textMuted}`}
+      {/* Compact Top Drive Switcher (Mobile / Small Window) */}
+      {isCompact ? (
+        <div
+          className={`shrink-0 px-3 py-2 border-b flex items-center justify-between gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
         >
-          Drives
-        </span>
-
-        {/* Admin Drive */}
-        <button
-          type="button"
-          onClick={() => switchDrive('admin')}
-          className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-2 text-xs font-medium transition cursor-pointer ${
-            activeDrive === 'admin'
-              ? 'text-white shadow-sm'
-              : `${surface.textPrimary} hover:bg-white/[0.06]`
-          }`}
-          style={
-            activeDrive === 'admin'
-              ? { backgroundColor: theme.rgb }
-              : undefined
-          }
-        >
-          <span className="flex items-center gap-2 truncate">
-            <FaHdd className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Admin Drive</span>
-          </span>
-          <FaLock className="w-3 h-3 opacity-80 shrink-0" title="Read-Only" />
-        </button>
-
-        {/* User Drive */}
-        <button
-          type="button"
-          onClick={() => switchDrive('user')}
-          className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-2 text-xs font-medium transition cursor-pointer ${
-            activeDrive === 'user'
-              ? 'text-white shadow-sm'
-              : `${surface.textPrimary} hover:bg-white/[0.06]`
-          }`}
-          style={
-            activeDrive === 'user'
-              ? { backgroundColor: theme.rgb }
-              : undefined
-          }
-        >
-          <span className="flex items-center gap-2 truncate">
-            <FaHdd className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">User Drive</span>
-          </span>
-          <span className="text-[9px] font-mono uppercase opacity-80">R/W</span>
-        </button>
-
-        {/* User Drive Storage Meter + Supported Types */}
-        <div className="mt-auto pt-3 border-t border-current/10 px-2 space-y-2.5">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono">
-              <span className={surface.textMuted}>User Disk</span>
-              <span className="font-semibold">{usagePercent}%</span>
-            </div>
-
-            <div
-              className={`w-full h-1.5 rounded-full overflow-hidden ${
-                isLight ? 'bg-slate-200' : 'bg-white/10'
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => switchDrive('admin')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer ${
+                activeDrive === 'admin'
+                  ? 'text-white shadow-sm'
+                  : `${surface.textPrimary} hover:bg-white/[0.06]`
               }`}
+              style={
+                activeDrive === 'admin'
+                  ? { backgroundColor: theme.rgb }
+                  : undefined
+              }
             >
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${usagePercent}%`,
-                  backgroundColor:
-                    usagePercent >= 90
-                      ? '#f43f5e'
-                      : usagePercent >= 75
-                        ? '#f59e0b'
-                        : theme.rgb,
-                }}
-              />
-            </div>
+              <FaHdd className="w-3 h-3" />
+              <span>Admin</span>
+              <FaLock className="w-2.5 h-2.5 opacity-80" />
+            </button>
 
-            <div className={`text-[10px] font-mono ${surface.textMuted}`}>
-              {formatBytes(userDriveUsedBytes)} / {formatBytes(MAX_USER_DRIVE_BYTES)}
-            </div>
+            <button
+              type="button"
+              onClick={() => switchDrive('user')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer ${
+                activeDrive === 'user'
+                  ? 'text-white shadow-sm'
+                  : `${surface.textPrimary} hover:bg-white/[0.06]`
+              }`}
+              style={
+                activeDrive === 'user'
+                  ? { backgroundColor: theme.rgb }
+                  : undefined
+              }
+            >
+              <FaHdd className="w-3 h-3" />
+              <span>User</span>
+            </button>
           </div>
 
-          <div className="pt-2 border-t border-current/10 space-y-1">
-            <div className={`text-[10px] font-mono ${surface.textMuted}`}>
-              Supported Types
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {SUPPORTED_EXTENSIONS.map((ext) => (
-                <span
-                  key={ext}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${surface.borderSubtle}`}
-                >
-                  .{ext}
-                </span>
-              ))}
-            </div>
-          </div>
+          <span className={`text-[10px] font-mono ${surface.textMuted}`}>
+            Disk: {usagePercent}% ({formatBytes(userDriveUsedBytes)})
+          </span>
         </div>
-      </aside>
+      ) : (
+        /* Desktop Left Sidebar: Drives */
+        <aside
+          className={`w-48 sm:w-52 shrink-0 border-r p-3 flex flex-col gap-2 ${surface.subtleBg} ${surface.borderSubtle}`}
+        >
+          <span
+            className={`px-2 text-[10px] font-mono font-semibold uppercase tracking-widest ${surface.textMuted}`}
+          >
+            Drives
+          </span>
+
+          <button
+            type="button"
+            onClick={() => switchDrive('admin')}
+            className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-2 text-xs font-medium transition cursor-pointer ${
+              activeDrive === 'admin'
+                ? 'text-white shadow-sm'
+                : `${surface.textPrimary} hover:bg-white/[0.06]`
+            }`}
+            style={
+              activeDrive === 'admin'
+                ? { backgroundColor: theme.rgb }
+                : undefined
+            }
+          >
+            <span className="flex items-center gap-2 truncate">
+              <FaHdd className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Admin Drive</span>
+            </span>
+            <FaLock className="w-3 h-3 opacity-80 shrink-0" title="Read-Only" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchDrive('user')}
+            className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-2 text-xs font-medium transition cursor-pointer ${
+              activeDrive === 'user'
+                ? 'text-white shadow-sm'
+                : `${surface.textPrimary} hover:bg-white/[0.06]`
+            }`}
+            style={
+              activeDrive === 'user'
+                ? { backgroundColor: theme.rgb }
+                : undefined
+            }
+          >
+            <span className="flex items-center gap-2 truncate">
+              <FaHdd className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">User Drive</span>
+            </span>
+            <span className="text-[9px] font-mono uppercase opacity-80">R/W</span>
+          </button>
+
+          {/* User Drive Storage Meter + Supported Types */}
+          <div className="mt-auto pt-3 border-t border-current/10 px-2 space-y-2.5">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className={surface.textMuted}>User Disk</span>
+                <span className="font-semibold">{usagePercent}%</span>
+              </div>
+
+              <div
+                className={`w-full h-1.5 rounded-full overflow-hidden ${
+                  isLight ? 'bg-slate-200' : 'bg-white/10'
+                }`}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${usagePercent}%`,
+                    backgroundColor:
+                      usagePercent >= 90
+                        ? '#f43f5e'
+                        : usagePercent >= 75
+                          ? '#f59e0b'
+                          : theme.rgb,
+                  }}
+                />
+              </div>
+
+              <div className={`text-[10px] font-mono ${surface.textMuted}`}>
+                {formatBytes(userDriveUsedBytes)} / {formatBytes(MAX_USER_DRIVE_BYTES)}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-current/10 space-y-1">
+              <div className={`text-[10px] font-mono ${surface.textMuted}`}>
+                Supported Types
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {SUPPORTED_EXTENSIONS.map((ext) => (
+                  <span
+                    key={ext}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${surface.borderSubtle}`}
+                  >
+                    .{ext}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
@@ -684,7 +878,7 @@ export default function FileManagerApp() {
 
             {isReadOnly ? (
               <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold whitespace-nowrap"
                 style={{
                   backgroundColor: `rgba(${accentRgbClean}, 0.14)`,
                   color: theme.rgb,
@@ -774,7 +968,7 @@ export default function FileManagerApp() {
           </div>
         )}
 
-        {/* Split Body: File List + Preview/Editor Pane */}
+        {/* Split Body: File List + Desktop Preview Drawer */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* File List */}
           <div className="flex-1 min-w-0 overflow-y-auto p-3 space-y-1">
@@ -837,7 +1031,7 @@ export default function FileManagerApp() {
 
                       {/* User Drive Row Actions */}
                       {!isReadOnly && !isRenaming && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             title="Rename"
@@ -870,114 +1064,8 @@ export default function FileManagerApp() {
             )}
           </div>
 
-          {/* Right Preview / Editor Drawer */}
-          {selectedFile && (
-            <div
-              className={`w-72 sm:w-80 md:w-96 shrink-0 border-l flex flex-col overflow-hidden ${surface.subtleBg} ${surface.borderSubtle}`}
-            >
-              {/* Preview Header */}
-              <div
-                className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${surface.borderSubtle}`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {renderIcon(selectedFile)}
-                  <span className="text-xs font-semibold truncate">
-                    {selectedFile.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadFile(selectedFile)}
-                    title="Download"
-                    className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
-                  >
-                    <FaDownload className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFile(null)}
-                    title="Close Preview"
-                    className={`p-1.5 rounded-lg border cursor-pointer ${btnClass}`}
-                  >
-                    <FaTimes className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Preview Body */}
-              <div className="flex-1 min-h-0 p-3.5 flex flex-col overflow-auto">
-                {selectedFile.ext === 'txt' ? (
-                  isReadOnly ? (
-                    <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed select-text">
-                      {selectedFile.content || '(Empty file)'}
-                    </pre>
-                  ) : (
-                    <>
-                      <textarea
-                        value={editorText}
-                        onChange={(e) => setEditorText(e.target.value)}
-                        className={`flex-1 w-full resize-none rounded-xl border p-3 text-xs font-mono leading-relaxed focus:outline-none select-text ${surface.appBg} ${surface.borderSubtle}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveTextFile}
-                        className="mt-2.5 w-full py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5 cursor-pointer hover:brightness-110"
-                        style={{ backgroundColor: theme.rgb }}
-                      >
-                        <FaSave className="w-3.5 h-3.5" />
-                        <span>Save Changes</span>
-                      </button>
-                    </>
-                  )
-                ) : (
-                  <div className="my-auto flex flex-col items-center text-center gap-3 p-4">
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                      style={{
-                        backgroundColor: `rgba(${accentRgbClean}, 0.14)`,
-                      }}
-                    >
-                      {renderIcon(selectedFile)}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold break-all">
-                        {selectedFile.name}
-                      </p>
-                      <p className={`text-[11px] font-mono mt-1 ${surface.textMuted}`}>
-                        {selectedFile.ext?.toUpperCase()} Document ·{' '}
-                        {selectedFile.size || 'Ready'}
-                      </p>
-                    </div>
-                    {selectedFile.url && (
-                      <div className="flex items-center gap-2 mt-1">
-                        {selectedFile.ext === 'pdf' && (
-                          <a
-                            href={selectedFile.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5"
-                            style={{ backgroundColor: theme.rgb }}
-                          >
-                            <span>Open PDF</span>
-                            <FaExternalLinkAlt className="w-2.5 h-2.5" />
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadFile(selectedFile)}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${btnClass}`}
-                        >
-                          <FaDownload className="w-3 h-3" />
-                          <span>Download</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Desktop Side Preview Drawer */}
+          {!isCompact && renderPreviewPanel()}
         </div>
 
         {/* Bottom Status Bar */}
@@ -997,6 +1085,9 @@ export default function FileManagerApp() {
           )}
         </div>
       </div>
+
+      {/* Compact Full-App Takeover Preview Overlay */}
+      {isCompact && renderPreviewPanel()}
     </div>
   )
 }
