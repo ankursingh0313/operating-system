@@ -5,6 +5,7 @@ import GitWidget from '@/components/os/widgets/GitWidget'
 import NotesWidget from '@/components/os/widgets/NotesWidget'
 import TodoWidget from './TodoWidget'
 import GitHubLanguageRadar from './GitHubLanguageRadar'
+import SystemInfo from './SystemInfo'
 
 export interface WidgetPosition {
   x: number
@@ -95,6 +96,16 @@ export const WIDGET_REGISTRY: Record<string, WidgetRegistryItem> = {
     defaultOpen: false,
     defaultPos: { x: 1000, y: 760, xRatio: 0.75, yRatio: 0.85 },
     component: TodoWidget,
+  },
+  system: {
+    id: 'system',
+    name: 'System Information',
+    label: 'System Information',
+    previewTitle: 'System Info',
+    previewSubtitle: 'System Widget',
+    defaultOpen: false,
+    defaultPos: { x: 1000, y: 760, xRatio: 0.75, yRatio: 0.85 },
+    component: SystemInfo,
   },
 }
 

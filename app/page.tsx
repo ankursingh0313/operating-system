@@ -40,6 +40,7 @@ import TodoWidget from "@/components/os/widgets/TodoWidget";
 import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
 import ResumeViewerApp from "@/components/os/apps/ResumeViewerApp";
+import SystemInfo from "@/components/os/widgets/SystemInfo";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -146,7 +147,11 @@ export default function Home() {
                             <DraggableWidget key="todo" id="todo">
                                 <TodoWidget />
                             </DraggableWidget>
-                        );    
+                        );   
+                    case "system":
+                        return (
+                            <SystemInfo key="system" id="system" />
+                        ) 
                     default:
                         return null;
                 }
