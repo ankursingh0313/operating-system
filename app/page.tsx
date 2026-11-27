@@ -150,7 +150,7 @@ export default function Home() {
                         );   
                     case "system":
                         return (
-                            <SystemInfo key="system" id="system" />
+                            <SystemInfo key="system" />
                         ) 
                     default:
                         return null;
