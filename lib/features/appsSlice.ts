@@ -120,7 +120,7 @@ const initialState: AppsState = {
       id: 'calculator',
       title: 'Calculator',
       description: 'Standard arithmetic and calculation history.',
-      category: 'System',
+      category: 'Utility',
       iconKey: 'calculator',
       installed: true,
       defaultWidth: 390,
