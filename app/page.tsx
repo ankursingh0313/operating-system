@@ -39,6 +39,7 @@ import CalculatorApp from "@/components/os/apps/CalculatorApp";
 import GitHubLanguageRadar from "@/components/os/widgets/GitHubLanguageRadar";
 import SystemInfo from "@/components/os/widgets/SystemInfo";
 import FileManagerApp from "@/components/os/apps/FileManagerApp";
+import ImageToolsApp from "@/components/os/apps/ImageToolsApp";
 
 export default function Home() {
     const dispatch = useAppDispatch();
@@ -270,6 +271,18 @@ export default function Home() {
                             defaultHeight={600}
                             >
                             <FileManagerApp />
+                            </Window>
+                        )
+                    case 'imagePlus':
+                        return (
+                            <Window
+                            key="imagePlus"
+                            id="imagePlus"
+                            title="Image+"
+                            defaultWidth={800}
+                            defaultHeight={600}
+                            >
+                            <ImageToolsApp />
                             </Window>
                         )
                     default:

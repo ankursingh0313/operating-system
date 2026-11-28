@@ -11,12 +11,13 @@ export type AppIconKey =
   | 'terminal'
   | 'calculator'
   | 'drives'
+  | 'imagePlus'
 
 export interface OSAppItem {
   id: string
   title: string
   description: string
-  category: 'System' | 'Developer' | 'Web' | 'Personal'
+  category: 'System' | 'Developer' | 'Web' | 'Personal' | 'Utility'
   iconKey: AppIconKey
   installed: boolean
   isSystemApp?: boolean
@@ -136,6 +137,17 @@ const initialState: AppsState = {
       defaultWidth: 820,
       defaultHeight: 620,
       routeOrView: 'drives',
+    },
+    imagePlus: {
+      id: 'imagePlus',
+      title: 'Image+',
+      description: 'Tool for image modification - resize, compress, crop etc.',
+      category: 'Utility',
+      iconKey: 'imagePlus',
+      installed: true,
+      defaultWidth: 820,
+      defaultHeight: 620,
+      routeOrView: 'imagePlus',
     },
   },
 }

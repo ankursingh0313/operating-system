@@ -42,6 +42,14 @@ const UNPINNED_APP_META: Record<string, { name: string; icon: string }> = {
     name: 'Resume',
     icon: '/icons/resume.png',
   },
+  drives: {
+    name: 'Disk',
+    icon: '/icons/disk.png',
+  },
+  imagePlus: {
+    name: 'Image+',
+    icon: '/icons/image-plus.png',
+  },
 }
 
 const LEAVE_COLLAPSE_DELAY_MS = 1000
